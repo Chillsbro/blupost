@@ -1,0 +1,289 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1116" height="648" viewBox="0 0 1116 648" role="img" aria-labelledby="title description">
+  <title id="title">Blupost Electric Quiet at 120x34</title>
+  <desc id="description">An authentic deterministic frame captured from the implemented Blupost terminal interface.</desc>
+  <rect width="1116" height="648" rx="14" fill="#03090c"/>
+  <g clip-path="url(#terminal-clip)" font-family="'Geist Mono', 'JetBrains Mono', 'Cascadia Mono', monospace" font-size="14" xml:space="preserve">
+    <defs><clipPath id="terminal-clip"><rect x="18" y="18" width="1080" height="612" rx="4"/></clipPath></defs>
+    <rect x="18" y="18" width="18" height="18" fill="#061014"/>
+    <rect x="36" y="18" width="9" height="18" fill="#061014"/>
+    <text x="36" y="32" fill="#061014" font-weight="450" textLength="9" lengthAdjust="spacingAndGlyphs">█</text>
+    <rect x="45" y="18" width="9" height="18" fill="#57d6d2"/>
+    <text x="45" y="32" fill="#57d6d2" font-weight="450" textLength="9" lengthAdjust="spacingAndGlyphs">▀</text>
+    <rect x="54" y="18" width="36" height="18" fill="#061014"/>
+    <text x="54" y="32" fill="#061014" font-weight="450" textLength="36" lengthAdjust="spacingAndGlyphs">████</text>
+    <rect x="90" y="18" width="1008" height="18" fill="#061014"/>
+    <rect x="18" y="36" width="18" height="18" fill="#061014"/>
+    <rect x="36" y="36" width="9" height="18" fill="#061014"/>
+    <text x="36" y="50" fill="#061014" font-weight="450" textLength="9" lengthAdjust="spacingAndGlyphs">█</text>
+    <rect x="45" y="36" width="9" height="18" fill="#57d6d2"/>
+    <text x="45" y="50" fill="#59d0d7" font-weight="450" textLength="9" lengthAdjust="spacingAndGlyphs">▐</text>
+    <rect x="54" y="36" width="9" height="18" fill="#5cc6e2"/>
+    <text x="54" y="50" fill="#5cc6e2" font-weight="450" textLength="9" lengthAdjust="spacingAndGlyphs">▚</text>
+    <rect x="63" y="36" width="9" height="18" fill="#5fbbec"/>
+    <text x="63" y="50" fill="#5fbbec" font-weight="450" textLength="9" lengthAdjust="spacingAndGlyphs">▄</text>
+    <rect x="72" y="36" width="9" height="18" fill="#4c8ac0"/>
+    <text x="72" y="50" fill="#4c8ac0" font-weight="450" textLength="9" lengthAdjust="spacingAndGlyphs">▖</text>
+    <rect x="81" y="36" width="9" height="18" fill="#64abfd"/>
+    <text x="81" y="50" fill="#64abfd" font-weight="450" textLength="9" lengthAdjust="spacingAndGlyphs">▜</text>
+    <rect x="90" y="36" width="729" height="18" fill="#061014"/>
+    <rect x="819" y="36" width="261" height="18" fill="#10252e"/>
+    <text x="819" y="50" fill="#57d6d1" font-weight="450" textLength="261" lengthAdjust="spacingAndGlyphs"> ● Connected · Nearby iPhone </text>
+    <rect x="1080" y="36" width="18" height="18" fill="#061014"/>
+    <rect x="18" y="54" width="18" height="18" fill="#061014"/>
+    <rect x="36" y="54" width="9" height="18" fill="#061014"/>
+    <text x="36" y="68" fill="#061014" font-weight="450" textLength="9" lengthAdjust="spacingAndGlyphs">█</text>
+    <rect x="45" y="54" width="9" height="18" fill="#57d6d2"/>
+    <text x="45" y="68" fill="#59d0d7" font-weight="450" textLength="9" lengthAdjust="spacingAndGlyphs">▐</text>
+    <rect x="54" y="54" width="9" height="18" fill="#061115"/>
+    <text x="54" y="68" fill="#061115" font-weight="450" textLength="9" lengthAdjust="spacingAndGlyphs">▝</text>
+    <rect x="63" y="54" width="9" height="18" fill="#5fbbec"/>
+    <text x="63" y="68" fill="#5fbbec" font-weight="450" textLength="9" lengthAdjust="spacingAndGlyphs">▀</text>
+    <rect x="72" y="54" width="9" height="18" fill="#63b1f7"/>
+    <text x="72" y="68" fill="#63b1f7" font-weight="450" textLength="9" lengthAdjust="spacingAndGlyphs">▘</text>
+    <rect x="81" y="54" width="9" height="18" fill="#64abfd"/>
+    <text x="81" y="68" fill="#64abfd" font-weight="450" textLength="9" lengthAdjust="spacingAndGlyphs">▟</text>
+    <rect x="90" y="54" width="1008" height="18" fill="#061014"/>
+    <rect x="18" y="72" width="72" height="18" fill="#0b1a21"/>
+    <text x="18" y="86" fill="#e8fbf8" font-weight="700" textLength="72" lengthAdjust="spacingAndGlyphs">MESSAGES</text>
+    <rect x="90" y="72" width="225" height="18" fill="#0b1a21"/>
+    <rect x="315" y="72" width="9" height="18" fill="#0b1a21"/>
+    <text x="315" y="86" fill="#1e4b57" font-weight="450" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <rect x="324" y="72" width="18" height="18" fill="#061014"/>
+    <rect x="342" y="72" width="45" height="18" fill="#061014"/>
+    <text x="342" y="86" fill="#8fedea" font-weight="700" textLength="45" lengthAdjust="spacingAndGlyphs">alice</text>
+    <rect x="387" y="72" width="567" height="18" fill="#061014"/>
+    <rect x="954" y="72" width="126" height="18" fill="#10252e"/>
+    <text x="954" y="86" fill="#759197" font-weight="450" textLength="126" lengthAdjust="spacingAndGlyphs"> SESSION ONLY </text>
+    <rect x="1080" y="72" width="18" height="18" fill="#061014"/>
+    <rect x="18" y="90" width="90" height="18" fill="#0b1a21"/>
+    <text x="18" y="104" fill="#759197" font-weight="450" textLength="90" lengthAdjust="spacingAndGlyphs">3 contacts</text>
+    <rect x="108" y="90" width="207" height="18" fill="#0b1a21"/>
+    <rect x="315" y="90" width="9" height="18" fill="#0b1a21"/>
+    <text x="315" y="104" fill="#1e4b57" font-weight="450" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <rect x="324" y="90" width="18" height="18" fill="#061014"/>
+    <rect x="342" y="90" width="144" height="18" fill="#061014"/>
+    <text x="342" y="104" fill="#759197" font-weight="450" textLength="144" lengthAdjust="spacingAndGlyphs">Session messages</text>
+    <rect x="486" y="90" width="612" height="18" fill="#061014"/>
+    <rect x="18" y="108" width="18" height="18" fill="#12313a"/>
+    <rect x="36" y="108" width="18" height="18" fill="#12313a"/>
+    <text x="36" y="122" fill="#65a9ff" font-weight="450" textLength="18" lengthAdjust="spacingAndGlyphs">▌ </text>
+    <rect x="54" y="108" width="45" height="18" fill="#12313a"/>
+    <text x="54" y="122" fill="#e8fbf8" font-weight="700" textLength="45" lengthAdjust="spacingAndGlyphs">alice</text>
+    <rect x="99" y="108" width="216" height="18" fill="#12313a"/>
+    <rect x="315" y="108" width="9" height="18" fill="#0b1a21"/>
+    <text x="315" y="122" fill="#1e4b57" font-weight="450" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <rect x="324" y="108" width="774" height="18" fill="#061014"/>
+    <text x="324" y="122" fill="#1e4b57" font-weight="450" textLength="774" lengthAdjust="spacingAndGlyphs">──────────────────────────────────────────────────────────────────────────────────────</text>
+    <rect x="18" y="126" width="18" height="18" fill="#12313a"/>
+    <rect x="36" y="126" width="261" height="18" fill="#12313a"/>
+    <text x="36" y="140" fill="#759197" font-weight="450" textLength="261" lengthAdjust="spacingAndGlyphs">  If that changed, check the </text>
+    <rect x="297" y="126" width="18" height="18" fill="#12313a"/>
+    <rect x="315" y="126" width="9" height="18" fill="#0b1a21"/>
+    <text x="315" y="140" fill="#1e4b57" font-weight="450" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <rect x="324" y="126" width="774" height="18" fill="#061014"/>
+    <rect x="18" y="144" width="297" height="18" fill="#12313a"/>
+    <rect x="315" y="144" width="9" height="18" fill="#0b1a21"/>
+    <text x="315" y="158" fill="#1e4b57" font-weight="450" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <rect x="324" y="144" width="27" height="18" fill="#061014"/>
+    <rect x="351" y="144" width="63" height="18" fill="#061014"/>
+    <text x="351" y="158" fill="#9ab5b8" font-weight="450" textLength="63" lengthAdjust="spacingAndGlyphs">▌ alice</text>
+    <rect x="414" y="144" width="684" height="18" fill="#061014"/>
+    <rect x="18" y="162" width="18" height="18" fill="#0b1a21"/>
+    <rect x="36" y="162" width="18" height="18" fill="#0b1a21"/>
+    <rect x="54" y="162" width="45" height="18" fill="#0b1a21"/>
+    <text x="54" y="176" fill="#e8fbf8" font-weight="700" textLength="45" lengthAdjust="spacingAndGlyphs">mateo</text>
+    <rect x="99" y="162" width="171" height="18" fill="#0b1a21"/>
+    <rect x="270" y="162" width="27" height="18" fill="#65a9ff"/>
+    <text x="270" y="176" fill="#061014" font-weight="450" textLength="27" lengthAdjust="spacingAndGlyphs"> 2 </text>
+    <rect x="297" y="162" width="18" height="18" fill="#0b1a21"/>
+    <rect x="315" y="162" width="9" height="18" fill="#0b1a21"/>
+    <text x="315" y="176" fill="#1e4b57" font-weight="450" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <rect x="324" y="162" width="27" height="18" fill="#061014"/>
+    <rect x="351" y="162" width="9" height="18" fill="#061014"/>
+    <text x="351" y="176" fill="#27444b" font-weight="450" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <rect x="360" y="162" width="9" height="18" fill="#061014"/>
+    <rect x="369" y="162" width="189" height="18" fill="#061014"/>
+    <text x="369" y="176" fill="#e8fbf8" font-weight="450" textLength="189" lengthAdjust="spacingAndGlyphs">Are you still coming?</text>
+    <rect x="558" y="162" width="540" height="18" fill="#061014"/>
+    <rect x="18" y="180" width="18" height="18" fill="#0b1a21"/>
+    <rect x="36" y="180" width="216" height="18" fill="#0b1a21"/>
+    <text x="36" y="194" fill="#759197" font-weight="450" textLength="216" lengthAdjust="spacingAndGlyphs">  Dinner moved to eight.</text>
+    <rect x="252" y="180" width="63" height="18" fill="#0b1a21"/>
+    <rect x="315" y="180" width="9" height="18" fill="#0b1a21"/>
+    <text x="315" y="194" fill="#1e4b57" font-weight="450" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <rect x="324" y="180" width="27" height="18" fill="#061014"/>
+    <rect x="351" y="180" width="9" height="18" fill="#061014"/>
+    <text x="351" y="194" fill="#27444b" font-weight="450" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <rect x="360" y="180" width="9" height="18" fill="#061014"/>
+    <rect x="369" y="180" width="234" height="18" fill="#061014"/>
+    <text x="369" y="194" fill="#e8fbf8" font-weight="450" textLength="234" lengthAdjust="spacingAndGlyphs">Perfect. Door is unlocked.</text>
+    <rect x="603" y="180" width="495" height="18" fill="#061014"/>
+    <rect x="18" y="198" width="297" height="18" fill="#0b1a21"/>
+    <rect x="315" y="198" width="9" height="18" fill="#0b1a21"/>
+    <text x="315" y="212" fill="#1e4b57" font-weight="450" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <rect x="324" y="198" width="774" height="18" fill="#061014"/>
+    <rect x="18" y="216" width="18" height="18" fill="#0b1a21"/>
+    <rect x="36" y="216" width="18" height="18" fill="#0b1a21"/>
+    <rect x="54" y="216" width="45" height="18" fill="#0b1a21"/>
+    <text x="54" y="230" fill="#9ab5b8" font-weight="450" textLength="45" lengthAdjust="spacingAndGlyphs">casey</text>
+    <rect x="99" y="216" width="216" height="18" fill="#0b1a21"/>
+    <rect x="315" y="216" width="9" height="18" fill="#0b1a21"/>
+    <text x="315" y="230" fill="#1e4b57" font-weight="450" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <rect x="324" y="216" width="702" height="18" fill="#061014"/>
+    <rect x="1026" y="216" width="45" height="18" fill="#061014"/>
+    <text x="1026" y="230" fill="#65a9ff" font-weight="450" textLength="45" lengthAdjust="spacingAndGlyphs">You ▐</text>
+    <rect x="1071" y="216" width="27" height="18" fill="#061014"/>
+    <rect x="18" y="234" width="18" height="18" fill="#0b1a21"/>
+    <rect x="36" y="234" width="261" height="18" fill="#0b1a21"/>
+    <text x="36" y="248" fill="#759197" font-weight="450" textLength="261" lengthAdjust="spacingAndGlyphs">  The fixture link is https:/</text>
+    <rect x="297" y="234" width="18" height="18" fill="#0b1a21"/>
+    <rect x="315" y="234" width="9" height="18" fill="#0b1a21"/>
+    <text x="315" y="248" fill="#1e4b57" font-weight="450" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <rect x="324" y="234" width="522" height="18" fill="#061014"/>
+    <rect x="846" y="234" width="9" height="18" fill="#102a36"/>
+    <rect x="855" y="234" width="198" height="18" fill="#102a36"/>
+    <text x="855" y="248" fill="#c8f4ff" font-weight="450" textLength="198" lengthAdjust="spacingAndGlyphs">Yep — leaving in five.</text>
+    <rect x="1053" y="234" width="9" height="18" fill="#102a36"/>
+    <rect x="1062" y="234" width="9" height="18" fill="#102a36"/>
+    <text x="1062" y="248" fill="#65a9ff" font-weight="450" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <rect x="1071" y="234" width="27" height="18" fill="#061014"/>
+    <rect x="18" y="252" width="297" height="18" fill="#0b1a21"/>
+    <rect x="315" y="252" width="9" height="18" fill="#0b1a21"/>
+    <text x="315" y="266" fill="#1e4b57" font-weight="450" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <rect x="324" y="252" width="693" height="18" fill="#061014"/>
+    <rect x="1017" y="252" width="54" height="18" fill="#061014"/>
+    <text x="1017" y="266" fill="#9ab5b8" font-weight="450" textLength="54" lengthAdjust="spacingAndGlyphs">✓ Sent</text>
+    <rect x="1071" y="252" width="27" height="18" fill="#061014"/>
+    <rect x="18" y="270" width="297" height="18" fill="#0b1a21"/>
+    <rect x="315" y="270" width="9" height="18" fill="#0b1a21"/>
+    <text x="315" y="284" fill="#1e4b57" font-weight="450" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <rect x="324" y="270" width="513" height="18" fill="#061014"/>
+    <rect x="837" y="270" width="9" height="18" fill="#102a36"/>
+    <rect x="846" y="270" width="207" height="18" fill="#102a36"/>
+    <text x="846" y="284" fill="#c8f4ff" font-weight="450" textLength="207" lengthAdjust="spacingAndGlyphs">I’ll bring the adapter.</text>
+    <rect x="1053" y="270" width="9" height="18" fill="#102a36"/>
+    <rect x="1062" y="270" width="9" height="18" fill="#102a36"/>
+    <text x="1062" y="284" fill="#65a9ff" font-weight="450" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <rect x="1071" y="270" width="27" height="18" fill="#061014"/>
+    <rect x="18" y="288" width="297" height="18" fill="#0b1a21"/>
+    <rect x="315" y="288" width="9" height="18" fill="#0b1a21"/>
+    <text x="315" y="302" fill="#1e4b57" font-weight="450" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <rect x="324" y="288" width="657" height="18" fill="#061014"/>
+    <rect x="981" y="288" width="90" height="18" fill="#061014"/>
+    <text x="981" y="302" fill="#57d6d1" font-weight="450" textLength="90" lengthAdjust="spacingAndGlyphs">◌ Sending…</text>
+    <rect x="1071" y="288" width="27" height="18" fill="#061014"/>
+    <rect x="18" y="306" width="297" height="18" fill="#0b1a21"/>
+    <rect x="315" y="306" width="9" height="18" fill="#0b1a21"/>
+    <text x="315" y="320" fill="#1e4b57" font-weight="450" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <rect x="324" y="306" width="423" height="18" fill="#061014"/>
+    <rect x="747" y="306" width="9" height="18" fill="#102a36"/>
+    <rect x="756" y="306" width="297" height="18" fill="#102a36"/>
+    <text x="756" y="320" fill="#c8f4ff" font-weight="450" textLength="297" lengthAdjust="spacingAndGlyphs">If that changed, check the phone.</text>
+    <rect x="1053" y="306" width="9" height="18" fill="#102a36"/>
+    <rect x="1062" y="306" width="9" height="18" fill="#102a36"/>
+    <text x="1062" y="320" fill="#65a9ff" font-weight="450" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <rect x="1071" y="306" width="27" height="18" fill="#061014"/>
+    <rect x="18" y="324" width="297" height="18" fill="#0b1a21"/>
+    <rect x="315" y="324" width="9" height="18" fill="#0b1a21"/>
+    <text x="315" y="338" fill="#1e4b57" font-weight="450" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <rect x="324" y="324" width="423" height="18" fill="#061014"/>
+    <rect x="747" y="324" width="324" height="18" fill="#10252e"/>
+    <text x="747" y="338" fill="#f1c86b" font-weight="450" textLength="324" lengthAdjust="spacingAndGlyphs">? Check your phone — outcome unknown</text>
+    <rect x="1071" y="324" width="27" height="18" fill="#061014"/>
+    <rect x="18" y="342" width="297" height="18" fill="#0b1a21"/>
+    <rect x="315" y="342" width="9" height="18" fill="#0b1a21"/>
+    <text x="315" y="356" fill="#1e4b57" font-weight="450" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <rect x="324" y="342" width="774" height="18" fill="#061014"/>
+    <rect x="18" y="360" width="297" height="18" fill="#0b1a21"/>
+    <rect x="315" y="360" width="9" height="18" fill="#0b1a21"/>
+    <text x="315" y="374" fill="#1e4b57" font-weight="450" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <rect x="324" y="360" width="774" height="18" fill="#061014"/>
+    <rect x="18" y="378" width="297" height="18" fill="#0b1a21"/>
+    <rect x="315" y="378" width="9" height="18" fill="#0b1a21"/>
+    <text x="315" y="392" fill="#1e4b57" font-weight="450" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <rect x="324" y="378" width="774" height="18" fill="#061014"/>
+    <rect x="18" y="396" width="297" height="18" fill="#0b1a21"/>
+    <rect x="315" y="396" width="9" height="18" fill="#0b1a21"/>
+    <text x="315" y="410" fill="#1e4b57" font-weight="450" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <rect x="324" y="396" width="774" height="18" fill="#061014"/>
+    <rect x="18" y="414" width="297" height="18" fill="#0b1a21"/>
+    <rect x="315" y="414" width="9" height="18" fill="#0b1a21"/>
+    <text x="315" y="428" fill="#1e4b57" font-weight="450" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <rect x="324" y="414" width="774" height="18" fill="#061014"/>
+    <rect x="18" y="432" width="297" height="18" fill="#0b1a21"/>
+    <rect x="315" y="432" width="9" height="18" fill="#0b1a21"/>
+    <text x="315" y="446" fill="#1e4b57" font-weight="450" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <rect x="324" y="432" width="774" height="18" fill="#061014"/>
+    <rect x="18" y="450" width="297" height="18" fill="#0b1a21"/>
+    <rect x="315" y="450" width="9" height="18" fill="#0b1a21"/>
+    <text x="315" y="464" fill="#1e4b57" font-weight="450" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <rect x="324" y="450" width="774" height="18" fill="#061014"/>
+    <rect x="18" y="468" width="297" height="18" fill="#0b1a21"/>
+    <rect x="315" y="468" width="9" height="18" fill="#0b1a21"/>
+    <text x="315" y="482" fill="#1e4b57" font-weight="450" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <rect x="324" y="468" width="774" height="18" fill="#061014"/>
+    <rect x="18" y="486" width="297" height="18" fill="#0b1a21"/>
+    <rect x="315" y="486" width="9" height="18" fill="#0b1a21"/>
+    <text x="315" y="500" fill="#1e4b57" font-weight="450" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <rect x="324" y="486" width="774" height="18" fill="#061014"/>
+    <rect x="18" y="504" width="297" height="18" fill="#0b1a21"/>
+    <rect x="315" y="504" width="9" height="18" fill="#0b1a21"/>
+    <text x="315" y="518" fill="#1e4b57" font-weight="450" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <rect x="324" y="504" width="774" height="18" fill="#061014"/>
+    <rect x="18" y="522" width="297" height="18" fill="#0b1a21"/>
+    <rect x="315" y="522" width="9" height="18" fill="#0b1a21"/>
+    <text x="315" y="536" fill="#1e4b57" font-weight="450" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <rect x="324" y="522" width="774" height="18" fill="#061014"/>
+    <rect x="18" y="540" width="297" height="18" fill="#0b1a21"/>
+    <rect x="315" y="540" width="9" height="18" fill="#0b1a21"/>
+    <text x="315" y="554" fill="#1e4b57" font-weight="450" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <rect x="324" y="540" width="774" height="18" fill="#10252e"/>
+    <text x="324" y="554" fill="#8fedea" font-weight="450" textLength="774" lengthAdjust="spacingAndGlyphs">──────────────────────────────────────────────────────────────────────────────────────</text>
+    <rect x="18" y="558" width="297" height="18" fill="#0b1a21"/>
+    <rect x="315" y="558" width="9" height="18" fill="#0b1a21"/>
+    <text x="315" y="572" fill="#1e4b57" font-weight="450" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <rect x="324" y="558" width="9" height="18" fill="#10252e"/>
+    <rect x="333" y="558" width="36" height="18" fill="#65a9ff"/>
+    <text x="333" y="572" fill="#061014" font-weight="450" textLength="36" lengthAdjust="spacingAndGlyphs"> TO </text>
+    <rect x="369" y="558" width="54" height="18" fill="#10252e"/>
+    <text x="369" y="572" fill="#e8fbf8" font-weight="700" textLength="54" lengthAdjust="spacingAndGlyphs"> alice</text>
+    <rect x="423" y="558" width="675" height="18" fill="#10252e"/>
+    <rect x="18" y="576" width="297" height="18" fill="#0b1a21"/>
+    <rect x="315" y="576" width="9" height="18" fill="#0b1a21"/>
+    <text x="315" y="590" fill="#1e4b57" font-weight="450" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <rect x="324" y="576" width="9" height="18" fill="#10252e"/>
+    <rect x="333" y="576" width="126" height="18" fill="#10252e"/>
+    <text x="333" y="590" fill="#759197" font-weight="450" textLength="126" lengthAdjust="spacingAndGlyphs">Message alice…</text>
+    <rect x="459" y="576" width="540" height="18" fill="#10252e"/>
+    <rect x="999" y="576" width="72" height="18" fill="#12313a"/>
+    <text x="999" y="590" fill="#759197" font-weight="450" textLength="72" lengthAdjust="spacingAndGlyphs"> Send ↵ </text>
+    <rect x="1071" y="576" width="27" height="18" fill="#10252e"/>
+    <rect x="18" y="594" width="216" height="18" fill="#12313a"/>
+    <text x="18" y="608" fill="#65a9ff" font-weight="450" textLength="216" lengthAdjust="spacingAndGlyphs"> ＋ Add contact       N </text>
+    <rect x="234" y="594" width="81" height="18" fill="#0b1a21"/>
+    <rect x="315" y="594" width="9" height="18" fill="#0b1a21"/>
+    <text x="315" y="608" fill="#1e4b57" font-weight="450" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <rect x="324" y="594" width="774" height="18" fill="#10252e"/>
+    <rect x="18" y="612" width="18" height="18" fill="#0b1a21"/>
+    <rect x="36" y="612" width="63" height="18" fill="#57d6d1"/>
+    <text x="36" y="626" fill="#061014" font-weight="450" textLength="63" lengthAdjust="spacingAndGlyphs"> WRITE </text>
+    <rect x="99" y="612" width="27" height="18" fill="#12313a"/>
+    <text x="99" y="626" fill="#e8fbf8" font-weight="450" textLength="27" lengthAdjust="spacingAndGlyphs"> ↵ </text>
+    <rect x="126" y="612" width="63" height="18" fill="#0b1a21"/>
+    <text x="126" y="626" fill="#9ab5b8" font-weight="450" textLength="63" lengthAdjust="spacingAndGlyphs"> Send  </text>
+    <rect x="189" y="612" width="36" height="18" fill="#12313a"/>
+    <text x="189" y="626" fill="#e8fbf8" font-weight="450" textLength="36" lengthAdjust="spacingAndGlyphs"> ⇧↵ </text>
+    <rect x="225" y="612" width="99" height="18" fill="#0b1a21"/>
+    <text x="225" y="626" fill="#9ab5b8" font-weight="450" textLength="99" lengthAdjust="spacingAndGlyphs"> New line  </text>
+    <rect x="324" y="612" width="45" height="18" fill="#12313a"/>
+    <text x="324" y="626" fill="#e8fbf8" font-weight="450" textLength="45" lengthAdjust="spacingAndGlyphs"> Esc </text>
+    <rect x="369" y="612" width="45" height="18" fill="#0b1a21"/>
+    <text x="369" y="626" fill="#9ab5b8" font-weight="450" textLength="45" lengthAdjust="spacingAndGlyphs"> Read</text>
+    <rect x="414" y="612" width="495" height="18" fill="#0b1a21"/>
+    <rect x="909" y="612" width="99" height="18" fill="#0b1a21"/>
+    <text x="909" y="626" fill="#759197" font-weight="450" textLength="99" lengthAdjust="spacingAndGlyphs">7 SESSION  </text>
+    <rect x="1008" y="612" width="72" height="18" fill="#12313a"/>
+    <text x="1008" y="626" fill="#e8fbf8" font-weight="450" textLength="72" lengthAdjust="spacingAndGlyphs"> ? Help </text>
+    <rect x="1080" y="612" width="18" height="18" fill="#0b1a21"/>
+  </g>
+</svg>

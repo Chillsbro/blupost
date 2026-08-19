@@ -1,0 +1,743 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light" />
+    <meta name="description" content="Blupost Signal b logo and motion preview" />
+    <link rel="icon" href="blupost-mark.svg" type="image/svg+xml" />
+    <title>Blupost — Signal b</title>
+    <style>
+      :root {
+        --night: #071117;
+        --night-raised: #0c1b24;
+        --border-dark: #173642;
+        --ink: #102228;
+        --muted: #5d747a;
+        --paper: #f5faf9;
+        --white: #ffffff;
+        --line: #d8e7e5;
+        --cyan: #57d6d1;
+        --blue: #65a9ff;
+        --radius-large: 32px;
+        --radius-medium: 22px;
+        --shadow: 0 24px 70px rgb(25 62 69 / 10%);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        background: var(--paper);
+        color: var(--ink);
+        font-family: Geist, Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        line-height: 1.5;
+      }
+
+      body {
+        min-width: 320px;
+        margin: 0;
+        background:
+          radial-gradient(circle at 12% 0%, rgb(87 214 209 / 13%), transparent 30rem),
+          radial-gradient(circle at 88% 8%, rgb(101 169 255 / 12%), transparent 32rem),
+          var(--paper);
+      }
+
+      img {
+        display: block;
+        max-width: 100%;
+      }
+
+      .svg-sprite {
+        position: absolute;
+        width: 0;
+        height: 0;
+        overflow: hidden;
+      }
+
+      .brand-mark {
+        display: block;
+        overflow: visible;
+      }
+
+      a {
+        color: #176f78;
+        text-underline-offset: 0.2em;
+      }
+
+      button {
+        border: 0;
+        font: inherit;
+      }
+
+      .shell {
+        width: min(1180px, calc(100% - 40px));
+        margin: 0 auto;
+        padding: 28px 0 72px;
+      }
+
+      .topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 28px;
+      }
+
+      .mini-lockup {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 17px;
+        font-weight: 680;
+        letter-spacing: -0.02em;
+      }
+
+      .mini-lockup .brand-mark {
+        width: 27px;
+        height: 27px;
+      }
+
+      .status {
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .hero {
+        position: relative;
+        overflow: hidden;
+        display: grid;
+        grid-template-columns: minmax(0, 0.8fr) minmax(440px, 1.2fr);
+        gap: 44px;
+        align-items: center;
+        min-height: 510px;
+        padding: clamp(38px, 6vw, 72px);
+        border: 1px solid var(--border-dark);
+        border-radius: var(--radius-large);
+        background:
+          radial-gradient(circle at 78% 20%, rgb(101 169 255 / 16%), transparent 24rem),
+          radial-gradient(circle at 48% 90%, rgb(87 214 209 / 10%), transparent 24rem),
+          var(--night);
+        color: #e6f7f5;
+        box-shadow: var(--shadow);
+      }
+
+      .hero::after {
+        position: absolute;
+        inset: auto -6% -48% 40%;
+        height: 420px;
+        border: 1px solid rgb(87 214 209 / 12%);
+        border-radius: 50%;
+        content: "";
+        pointer-events: none;
+      }
+
+      .eyebrow {
+        margin: 0 0 18px;
+        color: var(--cyan);
+        font-size: 12px;
+        font-weight: 760;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+
+      h1,
+      h2,
+      h3,
+      p {
+        margin-top: 0;
+      }
+
+      h1 {
+        max-width: 8ch;
+        margin-bottom: 18px;
+        font-size: clamp(52px, 7vw, 86px);
+        font-weight: 670;
+        letter-spacing: -0.065em;
+        line-height: 0.94;
+      }
+
+      h2 {
+        margin-bottom: 12px;
+        font-size: clamp(30px, 4vw, 48px);
+        font-weight: 660;
+        letter-spacing: -0.045em;
+        line-height: 1.05;
+      }
+
+      h3 {
+        margin-bottom: 8px;
+        font-size: 18px;
+        letter-spacing: -0.025em;
+      }
+
+      .hero-copy {
+        position: relative;
+        z-index: 1;
+      }
+
+      .hero-copy > p:not(.eyebrow) {
+        max-width: 41ch;
+        margin-bottom: 24px;
+        color: #a9c1c5;
+        font-size: 17px;
+      }
+
+      .tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .tags li {
+        padding: 7px 11px;
+        border: 1px solid rgb(138 167 173 / 26%);
+        border-radius: 999px;
+        color: #c8dcde;
+        font-size: 12px;
+      }
+
+      .hero-art {
+        position: relative;
+        z-index: 1;
+      }
+
+      .hero-logo-card {
+        display: grid;
+        min-height: 350px;
+        padding: 30px;
+        border: 1px solid var(--border-dark);
+        border-radius: 28px;
+        background: rgb(4 14 20 / 70%);
+        box-shadow: 0 24px 50px rgb(0 0 0 / 18%);
+        place-items: center;
+      }
+
+      #hero-logo {
+        width: min(240px, 72%);
+        filter: drop-shadow(0 18px 34px rgb(0 0 0 / 24%));
+      }
+
+      .hero-wordmark {
+        margin-top: -10px;
+        color: #e6f7f5;
+        font-size: clamp(44px, 5vw, 66px);
+        font-weight: 650;
+        letter-spacing: -0.055em;
+      }
+
+      .replay {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 14px;
+        padding: 9px 13px;
+        border: 1px solid rgb(138 167 173 / 32%);
+        border-radius: 999px;
+        background: rgb(12 27 36 / 78%);
+        color: #dff5f3;
+        cursor: pointer;
+        font-size: 12px;
+      }
+
+      .replay:hover,
+      .replay:focus-visible {
+        border-color: var(--cyan);
+        outline: none;
+      }
+
+      .replay svg {
+        width: 14px;
+        height: 14px;
+      }
+
+      .section {
+        padding: 84px 0 0;
+      }
+
+      .section-heading {
+        display: grid;
+        grid-template-columns: minmax(0, 0.65fr) minmax(300px, 0.35fr);
+        gap: 48px;
+        align-items: end;
+        margin-bottom: 28px;
+      }
+
+      .section-heading p {
+        margin-bottom: 4px;
+        color: var(--muted);
+      }
+
+      .mark-grid {
+        display: grid;
+        grid-template-columns: 1.2fr 0.8fr;
+        gap: 18px;
+      }
+
+      .card {
+        overflow: hidden;
+        border: 1px solid var(--line);
+        border-radius: var(--radius-medium);
+        background: rgb(255 255 255 / 78%);
+        box-shadow: 0 12px 42px rgb(25 62 69 / 6%);
+      }
+
+      .card-label {
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 15px 18px;
+        border-top: 1px solid var(--line);
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .mark-stage {
+        display: grid;
+        min-height: 390px;
+        place-items: center;
+        padding: 54px;
+      }
+
+      .mark-stage .brand-mark {
+        width: min(280px, 72%);
+      }
+
+      .mark-stage.dark {
+        background: var(--night);
+      }
+
+      .mark-stage.light {
+        background:
+          linear-gradient(90deg, rgb(16 34 40 / 4%) 1px, transparent 1px),
+          linear-gradient(rgb(16 34 40 / 4%) 1px, transparent 1px),
+          #ffffff;
+        background-size: 24px 24px;
+      }
+
+      .motion-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1.3fr) minmax(260px, 0.7fr);
+        gap: 18px;
+      }
+
+      .motion-stage {
+        display: grid;
+        min-height: 350px;
+        place-items: center;
+        padding: 36px;
+        background: var(--night);
+      }
+
+      .motion-logo {
+        width: min(250px, 76%);
+      }
+
+      .motion-tail {
+        transform-box: fill-box;
+        transform-origin: right center;
+      }
+
+      .motion-logo.is-replaying .motion-tail {
+        animation: trail-speech-tail 480ms cubic-bezier(.2, .8, .2, 1) both;
+      }
+
+      @keyframes trail-speech-tail {
+        0% {
+          opacity: .5;
+          transform: scale(.35);
+        }
+
+        100% {
+          opacity: 1;
+          transform: scale(1);
+        }
+      }
+
+      .motion-notes {
+        padding: 32px;
+      }
+
+      .motion-notes dl {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 11px 18px;
+        margin: 28px 0 0;
+        font-size: 14px;
+      }
+
+      .motion-notes dt {
+        color: var(--muted);
+      }
+
+      .motion-notes dd {
+        margin: 0;
+        font-weight: 630;
+      }
+
+      .scale-card {
+        padding: 34px;
+      }
+
+      .size-row {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: end;
+        gap: 34px;
+        min-height: 150px;
+        margin-top: 28px;
+      }
+
+      .size-sample {
+        display: grid;
+        gap: 11px;
+        justify-items: center;
+        color: var(--muted);
+        font: 12px/1 ui-monospace, "Geist Mono", monospace;
+      }
+
+      .size-sample .brand-mark {
+        width: var(--size);
+        height: var(--size);
+      }
+
+      .terminal {
+        overflow-x: auto;
+        margin-top: 18px;
+        padding: 26px;
+        border: 1px solid var(--border-dark);
+        border-radius: 18px;
+        background: var(--night);
+        color: #e6f7f5;
+        font: 14px/1.75 ui-monospace, "Geist Mono", "Cascadia Code", monospace;
+        white-space: pre;
+      }
+
+      .terminal .brand {
+        color: var(--cyan);
+        font-weight: 800;
+      }
+
+      .terminal .connected {
+        color: #79dc9a;
+      }
+
+      .principles {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 18px;
+      }
+
+      .principle {
+        min-height: 170px;
+        padding: 26px;
+      }
+
+      .principle span {
+        display: inline-grid;
+        width: 28px;
+        height: 28px;
+        margin-bottom: 26px;
+        border-radius: 9px;
+        background: linear-gradient(135deg, var(--cyan), var(--blue));
+        color: var(--night);
+        font-size: 13px;
+        font-weight: 800;
+        place-items: center;
+      }
+
+      .principle p {
+        margin-bottom: 0;
+        color: var(--muted);
+        font-size: 14px;
+      }
+
+      footer {
+        display: flex;
+        justify-content: space-between;
+        gap: 24px;
+        margin-top: 84px;
+        padding-top: 24px;
+        border-top: 1px solid var(--line);
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      @media (max-width: 860px) {
+        .hero,
+        .section-heading,
+        .mark-grid,
+        .motion-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .hero {
+          min-height: 0;
+        }
+
+        .hero-art {
+          margin-top: 8px;
+        }
+
+        .principles {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (max-width: 560px) {
+        .shell {
+          width: min(100% - 24px, 1180px);
+          padding-top: 16px;
+        }
+
+        .status {
+          display: none;
+        }
+
+        .hero {
+          padding: 34px 24px;
+          border-radius: 24px;
+        }
+
+        .section {
+          padding-top: 64px;
+        }
+
+        .mark-stage,
+        .motion-stage {
+          min-height: 280px;
+          padding: 28px;
+        }
+
+        .size-row {
+          gap: 24px;
+        }
+
+        footer {
+          flex-direction: column;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        html {
+          scroll-behavior: auto;
+        }
+
+        .motion-logo.is-replaying .motion-tail {
+          animation: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <svg class="svg-sprite" aria-hidden="true" width="0" height="0">
+      <defs>
+        <linearGradient id="blupost-gradient" x1="42" y1="128" x2="224" y2="128" gradientUnits="userSpaceOnUse">
+          <stop stop-color="#57D6D1" />
+          <stop offset="1" stop-color="#65A9FF" />
+        </linearGradient>
+        <mask id="blupost-counter-mask" maskUnits="userSpaceOnUse" x="0" y="0" width="256" height="256">
+          <rect width="256" height="256" fill="#fff" />
+          <path data-logo-part="letter-counter" d="M119 105h39c21 0 34 14 34 37v20c0 23-13 37-34 37h-39c-21 0-35-14-35-37v-20c0-23 14-37 35-37Z" fill="#000" />
+        </mask>
+        <mask id="blupost-counter-mask-mono" maskUnits="userSpaceOnUse" x="0" y="0" width="256" height="256">
+          <rect width="256" height="256" fill="#fff" />
+          <path d="M119 105h39c21 0 34 14 34 37v20c0 23-13 37-34 37h-39c-21 0-35-14-35-37v-20c0-23 14-37 35-37Z" fill="#000" />
+        </mask>
+        <symbol id="blupost-mark" viewBox="0 0 256 256">
+          <g fill="url(#blupost-gradient)" mask="url(#blupost-counter-mask)">
+            <path data-logo-part="bubble-b" d="M58 26h10c9 0 16 7 16 16v50c16-13 37-20 61-20 48 0 79 31 79 79 0 47-32 79-82 79H58c-9 0-16-7-16-16V42c0-9 7-16 16-16Z" />
+            <path data-logo-part="trailing-tail" data-tail-side="lower-left" d="M96 207c-14-2-26-8-35-18 5 19 2 36-12 52 20-10 38-14 58-12Z" />
+          </g>
+        </symbol>
+        <symbol id="blupost-mark-mono" viewBox="0 0 256 256">
+          <g fill="#071117" mask="url(#blupost-counter-mask-mono)">
+            <path d="M58 26h10c9 0 16 7 16 16v50c16-13 37-20 61-20 48 0 79 31 79 79 0 47-32 79-82 79H58c-9 0-16-7-16-16V42c0-9 7-16 16-16Z" />
+            <path d="M96 207c-14-2-26-8-35-18 5 19 2 36-12 52 20-10 38-14 58-12Z" />
+          </g>
+        </symbol>
+      </defs>
+    </svg>
+    <main class="shell">
+      <header class="topbar">
+        <div class="mini-lockup">
+          <svg class="brand-mark" viewBox="0 0 256 256" aria-hidden="true"><use href="#blupost-mark" /></svg>
+          <span>blupost</span>
+        </div>
+        <div class="status">Identity direction · Signal b</div>
+      </header>
+
+      <section class="hero" aria-labelledby="hero-title">
+        <div class="hero-copy">
+          <p class="eyebrow">Brand direction 03</p>
+          <h1 id="hero-title">b, spoken.</h1>
+          <p>The lowercase <strong>b</strong> is the bubble. One speech tail trails from its bowl—no hidden icon, no attached badge, just one clean silhouette.</p>
+          <ul class="tags" aria-label="Design characteristics">
+            <li>One shape</li>
+            <li>Trailing tail</li>
+            <li>Lowercase b</li>
+            <li>Terminal-native</li>
+          </ul>
+        </div>
+        <div class="hero-art">
+          <div class="hero-logo-card">
+            <svg id="hero-logo" class="brand-mark" viewBox="0 0 256 256" role="img" aria-label="Lowercase b with a speech tail trailing from its bowl">
+              <use href="#blupost-mark" />
+            </svg>
+            <div class="hero-wordmark">blupost</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" aria-labelledby="mark-title">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">01 · The mark</p>
+            <h2 id="mark-title">The b does the talking.</h2>
+          </div>
+          <p>The counter stays simple and unmistakably typographic. The only twist is the small lower-left tail, integrated where the bowl meets the stem.</p>
+        </div>
+
+        <div class="mark-grid">
+          <article class="card">
+            <div class="mark-stage dark">
+              <svg class="brand-mark" viewBox="0 0 256 256" role="img" aria-label="Gradient Signal b logo"><use href="#blupost-mark" /></svg>
+            </div>
+            <div class="card-label"><span>Primary mark</span><span>Dark surface</span></div>
+          </article>
+          <article class="card">
+            <div class="mark-stage light">
+              <svg class="brand-mark" viewBox="0 0 256 256" role="img" aria-label="Monochrome Signal b logo"><use href="#blupost-mark-mono" /></svg>
+            </div>
+            <div class="card-label"><span>Monochrome</span><span>Light surface</span></div>
+          </article>
+        </div>
+      </section>
+
+      <section class="section" aria-labelledby="motion-title">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">02 · Motion</p>
+            <h2 id="motion-title">One trailing gesture.</h2>
+          </div>
+          <p>The lowercase b is already present. Its speech tail trails out once, then the mark becomes completely still.</p>
+        </div>
+
+        <div class="motion-grid">
+          <article class="card motion-stage">
+            <svg id="motion-logo" class="brand-mark motion-logo is-replaying" viewBox="0 0 256 256" role="img" aria-label="Speech tail trailing from a lowercase b">
+              <g fill="url(#blupost-gradient)" mask="url(#blupost-counter-mask)">
+                <path d="M58 26h10c9 0 16 7 16 16v50c16-13 37-20 61-20 48 0 79 31 79 79 0 47-32 79-82 79H58c-9 0-16-7-16-16V42c0-9 7-16 16-16Z" />
+                <path class="motion-tail" d="M96 207c-14-2-26-8-35-18 5 19 2 36-12 52 20-10 38-14 58-12Z" />
+              </g>
+            </svg>
+          </article>
+          <article class="card motion-notes">
+            <p class="eyebrow">One shot</p>
+            <h3>Quiet construction</h3>
+            <p>No bounce, wobble, particle trail, or idle loop in the product.</p>
+            <dl>
+              <dt>Duration</dt><dd>480 ms</dd>
+              <dt>Gesture</dt><dd>Tail trails out</dd>
+              <dt>Easing</dt><dd>Ease out</dd>
+              <dt>Final state</dt><dd>Completely still</dd>
+            </dl>
+            <button class="replay" id="replay" type="button">
+              <svg viewBox="0 0 16 16" aria-hidden="true">
+                <path d="M13.5 5.5A6 6 0 1 0 14 9" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="1.5" />
+                <path d="M10.5 2.5h3v3" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" />
+              </svg>
+              Replay reveal
+            </button>
+          </article>
+        </div>
+      </section>
+
+      <section class="section" aria-labelledby="scale-title">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">03 · Scale</p>
+            <h2 id="scale-title">Still a b at sixteen pixels.</h2>
+          </div>
+          <p>The heavy lowercase b survives at favicon scale; the trailing tail remains a small secondary discovery.</p>
+        </div>
+
+        <article class="card scale-card">
+          <h3>Actual-size samples</h3>
+          <div class="size-row">
+            <div class="size-sample"><svg class="brand-mark" viewBox="0 0 256 256" style="--size: 16px" role="img" aria-label="Blupost mark at 16 pixels"><use href="#blupost-mark" /></svg><span>16 px</span></div>
+            <div class="size-sample"><svg class="brand-mark" viewBox="0 0 256 256" style="--size: 24px" role="img" aria-label="Blupost mark at 24 pixels"><use href="#blupost-mark" /></svg><span>24 px</span></div>
+            <div class="size-sample"><svg class="brand-mark" viewBox="0 0 256 256" style="--size: 32px" role="img" aria-label="Blupost mark at 32 pixels"><use href="#blupost-mark" /></svg><span>32 px</span></div>
+            <div class="size-sample"><svg class="brand-mark" viewBox="0 0 256 256" style="--size: 64px" role="img" aria-label="Blupost mark at 64 pixels"><use href="#blupost-mark" /></svg><span>64 px</span></div>
+            <div class="size-sample"><svg class="brand-mark" viewBox="0 0 256 256" style="--size: 96px" role="img" aria-label="Blupost mark at 96 pixels"><use href="#blupost-mark" /></svg><span>96 px</span></div>
+          </div>
+        </article>
+      </section>
+
+      <section class="section" aria-labelledby="terminal-title">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">04 · Terminal</p>
+            <h2 id="terminal-title">Use the wordmark, not a fake icon.</h2>
+          </div>
+          <p>The TUI does not force the message bubble into noisy character art or pretend a lone b is the logo. It uses the plain wordmark and keeps state beside it.</p>
+        </div>
+
+        <div class="terminal" role="img" aria-label="Terminal header examples"><span class="brand">blupost</span>                                        ○ Connecting…
+<span class="brand">blupost</span>                                        <span class="connected">● Connected</span>
+
+  Alice                                        10:42
+  Thanks — I can open the link from here now.
+
+  › Posting…</div>
+      </section>
+
+      <section class="section" aria-labelledby="principles-title">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">05 · Principles</p>
+            <h2 id="principles-title">A quiet Linux identity.</h2>
+          </div>
+          <p>Open-source character comes from clarity, ownership, and restraint—not mascots or platform mimicry.</p>
+        </div>
+
+        <div class="principles">
+          <article class="card principle">
+            <span>1</span>
+            <h3>Clear hierarchy</h3>
+            <p>The letter is the bubble. Its tail is part of the same silhouette, not a second icon or badge.</p>
+          </article>
+          <article class="card principle">
+            <span>2</span>
+            <h3>One gesture</h3>
+            <p>The tail trails out once, then motion gets out of the conversation's way.</p>
+          </article>
+          <article class="card principle">
+            <span>3</span>
+            <h3>Honest fallback</h3>
+            <p>The terminal uses the wordmark instead of reducing the logo to a meaningless letter glyph.</p>
+          </article>
+        </div>
+      </section>
+
+      <footer>
+        <span>Blupost · Signal b identity preview</span>
+        <span><a href="../BRAND_MOTION.md">Read the specification</a> · <a href="blupost-mark.svg">Open the SVG</a></span>
+      </footer>
+    </main>
+
+    <script>
+      const replayButton = document.querySelector("#replay");
+      const motionLogo = document.querySelector("#motion-logo");
+
+      replayButton?.addEventListener("click", () => {
+        motionLogo?.classList.remove("is-replaying");
+        motionLogo?.getBoundingClientRect();
+        motionLogo?.classList.add("is-replaying");
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,34 @@
+{
+  "name": "blupost",
+  "version": "0.1.0",
+  "description": "Terminal-native iPhone messaging for Linux",
+  "type": "module",
+  "bin": {
+    "blupost": "./bin/blupost.js"
+  },
+  "scripts": {
+    "start": "bun run src/cli.ts",
+    "dev": "cargo build --locked -p blupost-engine && BLUPOST_ENGINE=./target/debug/blupost-engine bun --watch run src/cli.ts",
+    "build:engine": "cargo build --locked --release -p blupost-engine",
+    "build:ui": "bun build src/cli.ts --target=bun --packages=external --outfile dist/blupost.js",
+    "build": "bun run build:engine && bun run build:ui",
+    "typecheck": "tsc --noEmit",
+    "lint:ui": "biome check .",
+    "lint:engine": "cargo clippy --locked --all-targets --all-features -- -D warnings",
+    "lint": "bun run typecheck && bun run lint:ui && bun run fmt:engine && bun run lint:engine",
+    "test:ui": "bun test",
+    "test:engine": "cargo test --locked --all-targets --all-features",
+    "test": "bun run test:engine && bun run test:ui",
+    "fmt:engine": "cargo fmt --all --check"
+  },
+  "dependencies": {
+    "@opentui/core": "0.5.2"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.5.3",
+    "@types/bun": "1.3.14",
+    "typescript": "5.9.3"
+  },
+  "packageManager": "bun@1.3.14",
+  "license": "MIT"
+}
