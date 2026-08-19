@@ -9,7 +9,6 @@ import {
 import {createEngineClient, resolveEngineBinary} from "./engine/createEngineClient.js";
 import {prepareEngineInvocation} from "./engine/prepareEngineInvocation.js";
 import {createBlupostTui} from "./tui/index.js";
-import {terminalIsInteractive} from "./tui/motion.js";
 import {blupostTheme} from "./tui/theme.js";
 
 function printHelp(): void {
@@ -127,7 +126,6 @@ async function runInteractive(): Promise<void> {
     app = createBlupostTui({
       renderer,
       engine: createEngineClient(),
-      interactive: terminalIsInteractive(process.stdin.isTTY, process.stdout.isTTY),
       copyText: text => clipboard.copyText(text)
     });
     await app.start();

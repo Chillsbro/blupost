@@ -1,6 +1,5 @@
 import {
   BoxRenderable,
-  bg,
   bold,
   CliRenderEvents,
   type CliRenderer,
@@ -17,15 +16,9 @@ import {
   underline
 } from "@opentui/core";
 import type {EngineClient} from "../engine/createEngineClient.js";
-import {
-  type EngineEvent,
-  emptySnapshot,
-  type MessageState,
-  type SessionMessage
-} from "../protocol.js";
+import {type EngineEvent, emptySnapshot} from "../protocol.js";
 import {blupostMarkPng} from "./brandAsset.js";
 import {type BlupostLayout, computeBlupostLayout} from "./layout.js";
-import {MotionController, mixHexColors} from "./motion.js";
 import {
   type BlupostPresentation,
   createBlupostPresentation,
@@ -33,13 +26,8 @@ import {
   type PresentationTone
 } from "./presentation.js";
 import {blupostTheme} from "./theme.js";
-import {
-  type ActionRibbon,
-  createBlupostChrome,
-  type VisualContext
-} from "./visualLanguage.js";
 
-type FocusContext = VisualContext;
+type FocusContext = "list" | "transcript" | "composer" | "contact" | "help" | "palette";
 type RestorableFocus = Exclude<FocusContext, "contact" | "help" | "palette">;
 type CompactPane = "list" | "chat";
 type ContactControl = "alias" | "number" | "save" | "cancel";
@@ -50,14 +38,22 @@ type PaletteEntry =
 interface ViewRefs {
   root: BoxRenderable;
   header: BoxRenderable;
-  brand: ImageRenderable;
+  compactBrand: ImageRenderable;
+  compactBrandFallback: TextRenderable;
   connection: TextRenderable;
+  compactConnection: TextRenderable;
+  notice: TextRenderable;
   main: BoxRenderable;
   sidebar: BoxRenderable;
-  listHeader: TextRenderable;
+  sidebarBrandRow: BoxRenderable;
+  sidebarBrand: ImageRenderable;
+  sidebarBrandFallback: TextRenderable;
   threadList: ScrollBoxRenderable;
   addContactButton: TextRenderable;
+  sidebarStatus: BoxRenderable;
+  contactView: BoxRenderable;
   contactForm: BoxRenderable;
+  contactHeading: TextRenderable;
   contactAlias: TextareaRenderable;
   contactNumberLabel: TextRenderable;
   contactNumber: TextareaRenderable;
@@ -66,15 +62,14 @@ interface ViewRefs {
   saveContactButton: TextRenderable;
   cancelContactButton: TextRenderable;
   chat: BoxRenderable;
-  chatHeader: BoxRenderable;
   backButton: TextRenderable;
   conversationTitle: TextRenderable;
-  sessionLabel: TextRenderable;
   transcript: ScrollBoxRenderable;
   newMessageNotice: TextRenderable;
+  composerDock: BoxRenderable;
   composerBox: BoxRenderable;
-  composerLabel: TextRenderable;
   composerRow: BoxRenderable;
+  composerPrompt: TextRenderable;
   composer: TextareaRenderable;
   sendButton: TextRenderable;
   composerNote: TextRenderable;
@@ -83,21 +78,15 @@ interface ViewRefs {
   palettePanel: BoxRenderable;
   paletteSearch: TextareaRenderable;
   paletteResults: ScrollBoxRenderable;
-  footer: BoxRenderable;
-  modeBadge: TextRenderable;
-  status: TextRenderable;
-  sessionCount: TextRenderable;
   helpButton: TextRenderable;
+  compactHelpButton: TextRenderable;
 }
 
 export interface BlupostTuiOptions {
   renderer: CliRenderer;
   engine: EngineClient;
-  interactive?: boolean | undefined;
   autoConnect?: boolean | undefined;
   copyText?: ((text: string) => Promise<"copied" | "terminal-attempted">) | undefined;
-  /** Optional deterministic driver for focused motion integration tests. */
-  motionController?: MotionController | undefined;
 }
 
 export interface BlupostTui {
@@ -110,26 +99,8 @@ function clearChildren(container: BoxRenderable | ScrollBoxRenderable): void {
   for (const child of [...container.getChildren()]) child.destroyRecursively();
 }
 
-function snapshotMessages(
-  snapshot: ReturnType<typeof emptySnapshot>
-): SessionMessage[] {
-  return snapshot.session.threads.flatMap(thread => thread.messages);
-}
-
 function toneColor(tone: PresentationTone): string {
   return blupostTheme[tone];
-}
-
-function keyRibbonContent(actions: readonly ActionRibbon[]): StyledText {
-  const chunks: TextChunk[] = [];
-  for (const [index, action] of actions.entries()) {
-    if (index > 0) chunks.push({__isChunk: true, text: "  "});
-    chunks.push(
-      bg(blupostTheme.selectionIdle)(fg(blupostTheme.textPrimary)(` ${action.key} `))
-    );
-    chunks.push(fg(blupostTheme.textSecondary)(` ${action.label}`));
-  }
-  return new StyledText(chunks);
 }
 
 const messageUrl = /\bhttps?:\/\/[^\s<>"'`]+/giu;
@@ -183,23 +154,12 @@ class BlupostTuiApp implements BlupostTui {
   private presentation: BlupostPresentation;
   private layout: BlupostLayout;
   private refs: ViewRefs;
-  private readonly motion: MotionController;
   private unsubscribe: (() => void) | undefined;
   private resolveExit: (() => void) | undefined;
   private readonly exitPromise: Promise<void>;
   private exitError: Error | undefined;
   private stopTask: Promise<void> | undefined;
   private stopped = false;
-  private spinner = "◌";
-  private sendingSpinner = "◌";
-  private sendingMotionActive = false;
-  private readonly messageSurfaces = new Map<number, BoxRenderable>();
-  private readonly messageOutcomes = new Map<number, TextRenderable>();
-  private readonly threadRows = new Map<string, BoxRenderable>();
-  private readonly threadRowBaseColors = new Map<string, string>();
-  private readonly incomingSettle = new Map<number, number>();
-  private readonly incomingThreadSettle = new Map<string, number>();
-  private readonly sentSettle = new Map<number, number>();
   private lastMessageId = 0;
   private ignoredComposerValue: string | undefined;
   private sendInFlight = false;
@@ -231,27 +191,17 @@ class BlupostTuiApp implements BlupostTui {
       options.renderer.terminalWidth,
       options.renderer.terminalHeight
     );
-    this.presentation = createBlupostPresentation(
-      this.snapshot,
-      this.spinner,
-      this.sendingSpinner
-    );
-    this.motion =
-      options.motionController ??
-      new MotionController({
-        animated: options.interactive ?? true,
-        requestFrame: () => options.renderer.requestRender()
-      });
+    this.presentation = createBlupostPresentation(this.snapshot);
     this.refs = this.buildView();
     options.renderer.root.add(this.refs.root);
     options.renderer.keyInput.on("keypress", this.handleKeyPress);
     options.renderer.on(CliRenderEvents.RESIZE, this.handleResize);
+    options.renderer.on(CliRenderEvents.CAPABILITIES, this.handleCapabilities);
     options.renderer.on(CliRenderEvents.DESTROY, this.handleRendererDestroy);
     options.renderer.on(CliRenderEvents.SELECTION, this.handleSelection);
     this.unsubscribe = options.engine.subscribe(this.handleEngineEvent);
     this.applyLayout();
     this.render();
-    this.startBrandReveal();
   }
 
   async start(): Promise<void> {
@@ -285,9 +235,9 @@ class BlupostTuiApp implements BlupostTui {
     this.stopped = true;
     this.unsubscribe?.();
     this.unsubscribe = undefined;
-    this.motion.dispose();
     this.options.renderer.keyInput.off("keypress", this.handleKeyPress);
     this.options.renderer.off(CliRenderEvents.RESIZE, this.handleResize);
+    this.options.renderer.off(CliRenderEvents.CAPABILITIES, this.handleCapabilities);
     this.options.renderer.off(CliRenderEvents.DESTROY, this.handleRendererDestroy);
     this.options.renderer.off(CliRenderEvents.SELECTION, this.handleSelection);
     try {
@@ -316,33 +266,67 @@ class BlupostTuiApp implements BlupostTui {
     });
     const header = new BoxRenderable(renderer, {
       width: "100%",
-      height: 3,
+      height: 1,
       flexDirection: "row",
-      paddingX: 2,
+      paddingX: 1,
       justifyContent: "space-between",
       alignItems: "center",
-      backgroundColor: blupostTheme.canvas
+      backgroundColor: blupostTheme.panel
     });
-    const brand = new ImageRenderable(renderer, {
-      id: "brand-mark",
+    const compactBrand = new ImageRenderable(renderer, {
+      id: "compact-brand-mark",
       source: blupostMarkPng,
-      width: 6,
-      height: 3,
+      width: 2,
+      height: 1,
+      marginRight: 1,
       fit: "fit",
       protocol: "auto"
     });
-    const connection = new TextRenderable(renderer, {
-      id: "connection-status",
-      content: " ○ Disconnected ",
+    const compactBrandFallback = new TextRenderable(renderer, {
+      id: "compact-brand-mark-fallback",
+      width: 2,
+      content: new StyledText([bold(fg(blupostTheme.accent)("b "))]),
+      fg: blupostTheme.accent
+    });
+    const compactConnection = new TextRenderable(renderer, {
+      id: "compact-connection-status",
+      content: "offline",
       fg: blupostTheme.warning,
-      bg: blupostTheme.surfaceRaised,
       onMouseDown: event => {
         event.preventDefault();
         if (this.presentation.connection.canReconnect) void this.reconnect();
       }
     });
-    header.add(brand);
-    header.add(connection);
+    const compactHelpButton = new TextRenderable(renderer, {
+      id: "compact-help-button",
+      width: 3,
+      content: "  ?",
+      fg: blupostTheme.textTertiary,
+      onMouseDown: event => {
+        event.preventDefault();
+        if (this.focusContext === "help") this.closeHelp();
+        else if (!this.contactFormOpen && this.focusContext !== "palette")
+          this.openHelp();
+      }
+    });
+    const headerActions = new BoxRenderable(renderer, {
+      height: 1,
+      flexDirection: "row",
+      alignItems: "center"
+    });
+    headerActions.add(compactConnection);
+
+    const notice = new TextRenderable(renderer, {
+      id: "notice",
+      width: "100%",
+      height: 0,
+      paddingX: 1,
+      content: "",
+      fg: blupostTheme.textSecondary,
+      bg: blupostTheme.surfaceRaised,
+      truncate: true,
+      visible: false
+    });
 
     const main = new BoxRenderable(renderer, {
       width: "100%",
@@ -357,16 +341,36 @@ class BlupostTuiApp implements BlupostTui {
       borderStyle: "single",
       borderColor: blupostTheme.divider,
       flexDirection: "column",
-      backgroundColor: blupostTheme.navSurface
+      backgroundColor: blupostTheme.panel
     });
-    const listHeader = new TextRenderable(renderer, {
-      id: "conversation-list-heading",
+    const sidebarBrandRow = new BoxRenderable(renderer, {
+      id: "sidebar-brand-row",
       width: "100%",
-      height: 2,
-      paddingX: 2,
-      content: "MESSAGES",
-      fg: blupostTheme.textPrimary
+      height: 4,
+      border: ["bottom"],
+      borderStyle: "single",
+      borderColor: blupostTheme.divider,
+      flexDirection: "row",
+      paddingLeft: 1,
+      alignItems: "center",
+      backgroundColor: blupostTheme.panel
     });
+    const sidebarBrand = new ImageRenderable(renderer, {
+      id: "brand-mark",
+      source: blupostMarkPng,
+      width: 4,
+      height: 2,
+      fit: "fit",
+      protocol: "auto"
+    });
+    sidebarBrandRow.add(sidebarBrand);
+    const sidebarBrandFallback = new TextRenderable(renderer, {
+      id: "brand-mark-fallback",
+      width: 1,
+      content: new StyledText([bold(fg(blupostTheme.accent)("b"))]),
+      fg: blupostTheme.accent
+    });
+    sidebarBrandRow.add(sidebarBrandFallback);
     const threadList = new ScrollBoxRenderable(renderer, {
       id: "conversation-list",
       width: "100%",
@@ -378,7 +382,7 @@ class BlupostTuiApp implements BlupostTui {
       horizontalScrollbarOptions: {visible: false, showArrows: false},
       viewportCulling: true,
       focusable: true,
-      backgroundColor: blupostTheme.navSurface,
+      backgroundColor: blupostTheme.panel,
       onMouseDown: () => this.setFocus("list")
     });
     threadList.verticalScrollBar.visible = false;
@@ -387,34 +391,81 @@ class BlupostTuiApp implements BlupostTui {
       id: "add-contact-button",
       height: 1,
       width: "100%",
-      paddingX: 2,
-      content: " ＋ Add contact       N ",
-      fg: blupostTheme.postBlue,
-      bg: blupostTheme.selectionIdle,
+      paddingX: 1,
+      content: "+ contact",
+      fg: blupostTheme.textTertiary,
+      bg: blupostTheme.panel,
       onMouseDown: event => {
         event.preventDefault();
         this.openContactForm();
       },
       onMouseOver: () => {
-        addContactButton.bg = blupostTheme.surfaceHover;
+        addContactButton.fg = blupostTheme.signalCyan;
       },
       onMouseOut: () => {
-        addContactButton.bg = blupostTheme.selectionIdle;
+        addContactButton.fg = blupostTheme.textTertiary;
       }
+    });
+    const sidebarStatus = new BoxRenderable(renderer, {
+      id: "sidebar-status",
+      height: 1,
+      flexGrow: 1,
+      paddingRight: 1,
+      flexDirection: "row",
+      alignSelf: "flex-end",
+      justifyContent: "flex-end",
+      backgroundColor: blupostTheme.panel
+    });
+    const connection = new TextRenderable(renderer, {
+      id: "connection-status",
+      content: "offline",
+      fg: blupostTheme.warning,
+      onMouseDown: event => {
+        event.preventDefault();
+        if (this.presentation.connection.canReconnect) void this.reconnect();
+      }
+    });
+    const helpButton = new TextRenderable(renderer, {
+      id: "help-button",
+      width: 1,
+      content: "?",
+      fg: blupostTheme.textTertiary,
+      onMouseDown: event => {
+        event.preventDefault();
+        if (this.focusContext === "help") this.closeHelp();
+        else if (!this.contactFormOpen && this.focusContext !== "palette")
+          this.openHelp();
+      }
+    });
+    sidebarStatus.add(connection);
+    sidebarBrandRow.add(sidebarStatus);
+
+    const contactView = new BoxRenderable(renderer, {
+      id: "contact-view",
+      width: "100%",
+      height: "100%",
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: blupostTheme.canvas,
+      visible: false
     });
     const contactForm = new BoxRenderable(renderer, {
       id: "contact-form",
       width: "100%",
-      flexGrow: 1,
+      maxWidth: 48,
       flexDirection: "column",
       paddingX: 2,
-      backgroundColor: blupostTheme.navSurface,
-      visible: false
+      paddingY: 1,
+      border: true,
+      borderStyle: "single",
+      borderColor: blupostTheme.divider,
+      backgroundColor: blupostTheme.surfaceRaised
     });
     const contactHeading = new TextRenderable(renderer, {
       height: 1,
-      content: new StyledText([bold(fg(blupostTheme.postBlue)("▌ Add contact"))]),
-      fg: blupostTheme.postBlue
+      content: new StyledText([bold(fg(blupostTheme.textPrimary)("New contact"))]),
+      fg: blupostTheme.textPrimary,
+      marginBottom: 1
     });
     const contactAliasLabel = new TextRenderable(renderer, {
       height: 1,
@@ -427,11 +478,11 @@ class BlupostTuiApp implements BlupostTui {
       width: "100%",
       textColor: blupostTheme.text,
       focusedTextColor: blupostTheme.text,
-      backgroundColor: blupostTheme.surfaceRaised,
+      backgroundColor: blupostTheme.canvas,
       focusedBackgroundColor: blupostTheme.selectionFocus,
       cursorColor: blupostTheme.signalBright,
       paddingLeft: 1,
-      placeholder: "friend",
+      placeholder: "Alice",
       placeholderColor: blupostTheme.textTertiary,
       keyBindings: [
         {name: "return", action: "submit"},
@@ -452,7 +503,7 @@ class BlupostTuiApp implements BlupostTui {
       width: "100%",
       textColor: blupostTheme.text,
       focusedTextColor: blupostTheme.text,
-      backgroundColor: blupostTheme.surfaceRaised,
+      backgroundColor: blupostTheme.canvas,
       focusedBackgroundColor: blupostTheme.selectionFocus,
       cursorColor: blupostTheme.signalBright,
       paddingLeft: 1,
@@ -475,10 +526,10 @@ class BlupostTuiApp implements BlupostTui {
       visible: false
     });
     const contactDisclosure = new TextRenderable(renderer, {
-      height: 3,
+      height: 1,
       width: "100%",
       marginTop: 1,
-      content: "Saved locally in your Blupost config.",
+      content: "Stored locally.",
       fg: blupostTheme.textTertiary,
       wrapMode: "word"
     });
@@ -489,8 +540,8 @@ class BlupostTuiApp implements BlupostTui {
     });
     const saveContactButton = new TextRenderable(renderer, {
       id: "save-contact-button",
-      width: 16,
-      content: " Save contact ",
+      width: 8,
+      content: " Save ",
       fg: blupostTheme.textPrimary,
       bg: blupostTheme.selectionIdle,
       onMouseDown: event => {
@@ -503,7 +554,7 @@ class BlupostTuiApp implements BlupostTui {
       id: "cancel-contact-button",
       content: " Cancel ",
       fg: blupostTheme.textSecondary,
-      bg: blupostTheme.navSurface,
+      bg: blupostTheme.surfaceRaised,
       onMouseDown: event => {
         event.preventDefault();
         this.setContactControl("cancel");
@@ -520,10 +571,10 @@ class BlupostTuiApp implements BlupostTui {
     contactForm.add(contactError);
     contactForm.add(contactDisclosure);
     contactForm.add(contactActions);
-    sidebar.add(listHeader);
+    sidebar.add(sidebarBrandRow);
     sidebar.add(threadList);
     sidebar.add(addContactButton);
-    sidebar.add(contactForm);
+    contactView.add(contactForm);
 
     const chat = new BoxRenderable(renderer, {
       id: "conversation-detail",
@@ -531,22 +582,11 @@ class BlupostTuiApp implements BlupostTui {
       flexGrow: 1,
       flexDirection: "column"
     });
-    const chatHeader = new BoxRenderable(renderer, {
-      height: 3,
-      width: "100%",
-      flexDirection: "row",
-      justifyContent: "space-between",
-      alignItems: "center",
-      paddingX: 2,
-      border: ["bottom"],
-      borderStyle: "single",
-      borderColor: blupostTheme.divider
-    });
     const backButton = new TextRenderable(renderer, {
       id: "back-button",
-      content: "‹ Conversations",
+      content: "‹",
       fg: blupostTheme.cyan,
-      marginRight: 2,
+      marginRight: 1,
       visible: false,
       onMouseDown: event => {
         event.preventDefault();
@@ -560,21 +600,18 @@ class BlupostTuiApp implements BlupostTui {
       flexGrow: 1,
       truncate: true
     });
-    const sessionLabel = new TextRenderable(renderer, {
-      content: " SESSION ONLY ",
-      fg: blupostTheme.textTertiary,
-      bg: blupostTheme.surfaceRaised
-    });
-    chatHeader.add(backButton);
-    chatHeader.add(conversationTitle);
-    chatHeader.add(sessionLabel);
+    header.add(compactBrand);
+    header.add(compactBrandFallback);
+    header.add(backButton);
+    header.add(conversationTitle);
+    header.add(headerActions);
 
     const transcript = new ScrollBoxRenderable(renderer, {
       id: "transcript",
       width: "100%",
       flexGrow: 1,
       paddingX: 1,
-      paddingY: 1,
+      paddingY: 0,
       scrollY: true,
       scrollX: false,
       stickyScroll: true,
@@ -595,36 +632,41 @@ class BlupostTuiApp implements BlupostTui {
       paddingX: 2,
       content: "",
       fg: blupostTheme.postBlue,
-      bg: blupostTheme.selectionIdle,
+      bg: blupostTheme.canvas,
       visible: false,
       onMouseDown: event => {
         event.preventDefault();
         this.jumpToLatest();
       }
     });
-    const composerBox = new BoxRenderable(renderer, {
-      id: "composer-region",
+    const composerDock = new BoxRenderable(renderer, {
+      id: "composer-dock",
       width: "100%",
       height: 3,
       flexDirection: "column",
-      border: ["top"],
+      paddingX: 1,
+      backgroundColor: blupostTheme.canvas
+    });
+    const composerBox = new BoxRenderable(renderer, {
+      id: "composer-region",
+      height: 3,
+      flexDirection: "column",
+      border: true,
       borderStyle: "single",
       borderColor: blupostTheme.borderSoft,
-      paddingX: 1,
-      backgroundColor: blupostTheme.surfaceRaised
-    });
-    const composerLabel = new TextRenderable(renderer, {
-      height: 1,
-      width: "100%",
-      content: "Message",
-      fg: blupostTheme.textSecondary,
-      truncate: true
+      backgroundColor: blupostTheme.panel
     });
     const composerRow = new BoxRenderable(renderer, {
       height: 1,
-      width: "100%",
       flexDirection: "row",
-      alignItems: "center"
+      alignItems: "center",
+      paddingLeft: 1
+    });
+    const composerPrompt = new TextRenderable(renderer, {
+      id: "composer-prompt",
+      width: 0,
+      content: "",
+      fg: blupostTheme.signalCyan
     });
     const composer = new TextareaRenderable(renderer, {
       id: "composer",
@@ -632,9 +674,9 @@ class BlupostTuiApp implements BlupostTui {
       height: "100%",
       textColor: blupostTheme.text,
       focusedTextColor: blupostTheme.text,
-      placeholder: "Type a message…",
+      placeholder: "Write a message",
       placeholderColor: blupostTheme.faint,
-      backgroundColor: blupostTheme.surfaceRaised,
+      backgroundColor: blupostTheme.panel,
       wrapMode: "word",
       keyBindings: [
         {name: "return", action: "submit"},
@@ -657,27 +699,23 @@ class BlupostTuiApp implements BlupostTui {
     });
     const sendButton = new TextRenderable(renderer, {
       id: "send-button",
-      content: " Send ↵ ",
-      fg: blupostTheme.faint,
-      bg: blupostTheme.selectionIdle,
-      width: 10,
+      content: " ↑ ",
+      fg: blupostTheme.inverseText,
+      bg: blupostTheme.accent,
+      width: 3,
+      visible: true,
       onMouseDown: event => {
         event.preventDefault();
         this.submitMessage();
       },
       onMouseOver: () => {
-        const canSend =
-          this.presentation.connection.isConnected &&
-          !this.sendInFlight &&
-          Boolean(composer.plainText.trim());
-        sendButton.bg = canSend ? blupostTheme.signalCyan : blupostTheme.surfaceHover;
+        if (this.presentation.connection.isConnected)
+          sendButton.bg = blupostTheme.signalBright;
       },
       onMouseOut: () => {
-        const canSend =
-          this.presentation.connection.isConnected &&
-          !this.sendInFlight &&
-          Boolean(composer.plainText.trim());
-        sendButton.bg = canSend ? blupostTheme.postBlue : blupostTheme.selectionIdle;
+        sendButton.bg = this.presentation.connection.isConnected
+          ? blupostTheme.accent
+          : blupostTheme.surfaceRaised;
       }
     });
     const composerNote = new TextRenderable(renderer, {
@@ -688,15 +726,15 @@ class BlupostTuiApp implements BlupostTui {
       wrapMode: "word",
       visible: false
     });
+    composerRow.add(composerPrompt);
     composerRow.add(composer);
     composerRow.add(sendButton);
-    composerBox.add(composerLabel);
     composerBox.add(composerRow);
     composerBox.add(composerNote);
-    chat.add(chatHeader);
+    composerDock.add(composerBox);
     chat.add(transcript);
     chat.add(newMessageNotice);
-    chat.add(composerBox);
+    chat.add(composerDock);
 
     const helpPanel = new ScrollBoxRenderable(renderer, {
       id: "help-panel",
@@ -727,32 +765,24 @@ class BlupostTuiApp implements BlupostTui {
     });
     const palettePanel = new BoxRenderable(renderer, {
       id: "command-palette",
-      width: "70%",
-      height: 14,
-      maxWidth: 72,
+      width: "100%",
+      height: 11,
+      maxWidth: 52,
       flexDirection: "column",
       paddingX: 1,
       paddingY: 1,
       border: true,
       borderStyle: "single",
-      borderColor: blupostTheme.signalBright,
+      borderColor: blupostTheme.divider,
       backgroundColor: blupostTheme.surfaceRaised
     });
-    palettePanel.add(
-      new TextRenderable(renderer, {
-        height: 1,
-        content: "COMMANDS",
-        fg: blupostTheme.signalCyan
-      })
-    );
     const paletteSearch = new TextareaRenderable(renderer, {
       id: "command-palette-search",
       width: "100%",
       height: 1,
-      marginTop: 1,
       textColor: blupostTheme.textPrimary,
       focusedTextColor: blupostTheme.textPrimary,
-      placeholder: "Find a contact or command…",
+      placeholder: "Search",
       placeholderColor: blupostTheme.textTertiary,
       backgroundColor: blupostTheme.selectionIdle,
       keyBindings: [
@@ -791,71 +821,32 @@ class BlupostTuiApp implements BlupostTui {
     paletteOverlay.add(palettePanel);
     main.add(sidebar);
     main.add(chat);
+    main.add(contactView);
     main.add(helpPanel);
     main.add(paletteOverlay);
-
-    const footer = new BoxRenderable(renderer, {
-      width: "100%",
-      height: 1,
-      flexDirection: "row",
-      paddingX: 2,
-      justifyContent: "space-between",
-      backgroundColor: blupostTheme.navSurface
-    });
-    const modeBadge = new TextRenderable(renderer, {
-      id: "focus-mode",
-      height: 1,
-      width: 9,
-      content: " INBOX ",
-      fg: blupostTheme.inverseText,
-      bg: blupostTheme.postBlue
-    });
-    const status = new TextRenderable(renderer, {
-      id: "context-keybar",
-      height: 1,
-      flexGrow: 1,
-      content: "↑↓ Move  Enter Open  a Add",
-      fg: blupostTheme.textSecondary,
-      paddingLeft: 1,
-      truncate: true
-    });
-    const sessionCount = new TextRenderable(renderer, {
-      height: 1,
-      content: "",
-      fg: blupostTheme.textTertiary
-    });
-    const helpButton = new TextRenderable(renderer, {
-      id: "help-button",
-      height: 1,
-      width: 8,
-      content: " ?  Help ",
-      fg: blupostTheme.textPrimary,
-      bg: blupostTheme.selectionIdle,
-      onMouseDown: event => {
-        event.preventDefault();
-        if (this.focusContext === "help") this.closeHelp();
-        else this.openHelp();
-      }
-    });
-    footer.add(modeBadge);
-    footer.add(status);
-    footer.add(sessionCount);
-    footer.add(helpButton);
     root.add(header);
+    root.add(notice);
     root.add(main);
-    root.add(footer);
 
     return {
       root,
       header,
-      brand,
+      compactBrand,
+      compactBrandFallback,
       connection,
+      compactConnection,
+      notice,
       main,
       sidebar,
-      listHeader,
+      sidebarBrandRow,
+      sidebarBrand,
+      sidebarBrandFallback,
       threadList,
       addContactButton,
+      sidebarStatus,
+      contactView,
       contactForm,
+      contactHeading,
       contactAlias,
       contactNumberLabel,
       contactNumber,
@@ -864,15 +855,14 @@ class BlupostTuiApp implements BlupostTui {
       saveContactButton,
       cancelContactButton,
       chat,
-      chatHeader,
       backButton,
       conversationTitle,
-      sessionLabel,
       transcript,
       newMessageNotice,
+      composerDock,
       composerBox,
-      composerLabel,
       composerRow,
+      composerPrompt,
       composer,
       sendButton,
       composerNote,
@@ -881,19 +871,13 @@ class BlupostTuiApp implements BlupostTui {
       palettePanel,
       paletteSearch,
       paletteResults,
-      footer,
-      modeBadge,
-      status,
-      sessionCount,
-      helpButton
+      helpButton,
+      compactHelpButton
     };
   }
 
   private handleEngineEvent = (event: EngineEvent): void => {
     if (event.type === "snapshot") {
-      const previousMessages = new Map(
-        snapshotMessages(this.snapshot).map(message => [message.id, message.state])
-      );
       const latestId = Math.max(
         0,
         ...event.snapshot.session.threads.flatMap(thread =>
@@ -912,15 +896,10 @@ class BlupostTuiApp implements BlupostTui {
               ?.messages.map(message => message.id) ?? [])
           )
         : 0;
-      const wasConnecting = this.presentation.connection.isConnecting;
       const firstSnapshot = !this.hasReceivedSnapshot;
       this.hasReceivedSnapshot = true;
       this.snapshot = event.snapshot;
-      this.presentation = createBlupostPresentation(
-        this.snapshot,
-        this.spinner,
-        this.sendingSpinner
-      );
+      this.presentation = createBlupostPresentation(this.snapshot);
 
       const activeThread = previousThread
         ? event.snapshot.session.threads.find(
@@ -965,14 +944,7 @@ class BlupostTuiApp implements BlupostTui {
         this.compactPane = "chat";
       }
 
-      if (!wasConnecting && this.presentation.connection.isConnecting) {
-        this.startConnectionPulse();
-      }
-      if (!this.presentation.connection.isConnecting) {
-        this.motion.cancel("connection-pulse", true);
-      }
       this.render();
-      this.syncMessageFeedback(previousMessages, firstSnapshot);
       if (preserveScroll) this.refs.transcript.scrollTop = previousScrollTop;
       if (shouldOpen) this.setFocus("composer");
     } else if (event.type === "error") {
@@ -991,11 +963,7 @@ class BlupostTuiApp implements BlupostTui {
   }
 
   private render(): void {
-    this.presentation = createBlupostPresentation(
-      this.snapshot,
-      this.spinner,
-      this.sendingSpinner
-    );
+    this.presentation = createBlupostPresentation(this.snapshot);
     this.renderConnection();
     this.renderThreads();
     this.renderConversation();
@@ -1004,195 +972,47 @@ class BlupostTuiApp implements BlupostTui {
     this.renderHelp();
     this.renderPalette();
     this.renderVisibility();
-    this.renderFooter();
+    this.renderNotice();
     this.applyComposerHeight();
     this.options.renderer.requestRender();
   }
 
-  private startBrandReveal(): void {
-    this.refs.brand.opacity = 0.35;
-    this.motion.animate("brand-reveal", 200, progress => {
-      if (this.stopped) return;
-      this.refs.brand.opacity = 0.35 + progress * 0.65;
-    });
-  }
-
-  private syncMessageFeedback(
-    previousMessages: ReadonlyMap<number, MessageState>,
-    firstSnapshot: boolean
-  ): void {
-    const messages = snapshotMessages(this.snapshot);
-    const hasSending = messages.some(message => message.state === "sending");
-    if (hasSending && !this.sendingMotionActive) {
-      this.sendingMotionActive = true;
-      const frames = ["◌", "◔", "◑", "◕"] as const;
-      this.motion.repeat("message-sending", 560, progress => {
-        this.sendingSpinner =
-          frames[Math.min(frames.length - 1, Math.floor(progress * frames.length))] ??
-          "◌";
-        for (const message of snapshotMessages(this.snapshot)) {
-          if (message.state === "sending") this.applyMessageFeedback(message.id);
-        }
-      });
-    } else if (!hasSending && this.sendingMotionActive) {
-      this.sendingMotionActive = false;
-      this.motion.cancel("message-sending", true);
-    }
-
-    if (firstSnapshot) return;
-    const activeThread = this.snapshot.session.active_thread;
-    const incomingThreads = new Set<string>();
-    for (const message of messages) {
-      if (message.direction === "incoming" && !previousMessages.has(message.id)) {
-        incomingThreads.add(message.participant);
-        if (message.participant === activeThread) {
-          this.startIncomingSettle(message.id);
-        }
-      }
-      if (message.state === "sent" && previousMessages.get(message.id) !== "sent") {
-        this.startSentSettle(message.id);
-      }
-    }
-    for (const participant of incomingThreads) {
-      this.startIncomingThreadSettle(participant);
-    }
-  }
-
-  private startIncomingSettle(messageId: number): void {
-    this.incomingSettle.set(messageId, 0);
-    this.motion.animate(
-      `incoming-${messageId}`,
-      240,
-      progress => {
-        this.incomingSettle.set(messageId, progress);
-        this.applyMessageFeedback(messageId);
-      },
-      () => {
-        this.incomingSettle.delete(messageId);
-        this.applyMessageFeedback(messageId);
-      }
-    );
-  }
-
-  private startSentSettle(messageId: number): void {
-    this.sentSettle.set(messageId, 0);
-    this.motion.animate(
-      `sent-${messageId}`,
-      800,
-      progress => {
-        this.sentSettle.set(messageId, progress);
-        this.applyMessageFeedback(messageId);
-      },
-      () => {
-        this.sentSettle.delete(messageId);
-        this.applyMessageFeedback(messageId);
-      }
-    );
-  }
-
-  private startIncomingThreadSettle(participant: string): void {
-    this.incomingThreadSettle.set(participant, 0);
-    this.motion.animate(
-      `incoming-thread-${participant}`,
-      240,
-      progress => {
-        this.incomingThreadSettle.set(participant, progress);
-        this.applyIncomingThreadFeedback(participant);
-      },
-      () => {
-        this.incomingThreadSettle.delete(participant);
-        this.applyIncomingThreadFeedback(participant);
-      }
-    );
-  }
-
-  private applyIncomingThreadFeedback(participant: string): void {
-    const row = this.threadRows.get(participant);
-    const base = this.threadRowBaseColors.get(participant);
-    if (row && base) {
-      const progress = this.incomingThreadSettle.get(participant);
-      row.backgroundColor =
-        progress === undefined
-          ? base
-          : mixHexColors(blupostTheme.selectionFocus, base, progress);
-    }
-    if (this.snapshot.session.active_thread === participant) {
-      const progress = this.incomingThreadSettle.get(participant);
-      this.refs.newMessageNotice.fg =
-        progress === undefined
-          ? blupostTheme.postBlue
-          : mixHexColors(blupostTheme.signalBright, blupostTheme.postBlue, progress);
-    }
-  }
-
-  private applyMessageFeedback(messageId: number): void {
-    const message = snapshotMessages(this.snapshot).find(
-      candidate => candidate.id === messageId
-    );
-    if (!message) return;
-    const surface = this.messageSurfaces.get(messageId);
-    if (surface && message.direction === "incoming") {
-      const progress = this.incomingSettle.get(messageId);
-      surface.borderColor =
-        progress === undefined
-          ? blupostTheme.messageIncomingRail
-          : mixHexColors(
-              blupostTheme.signalBright,
-              blupostTheme.messageIncomingRail,
-              progress
-            );
-    }
-    const outcome = this.messageOutcomes.get(messageId);
-    if (!outcome) return;
-    if (message.state === "sending") {
-      outcome.content = `${this.sendingSpinner} Sending…`;
-      outcome.fg = blupostTheme.signalCyan;
-      return;
-    }
-    if (message.state === "sent") {
-      const progress = this.sentSettle.get(messageId);
-      outcome.fg =
-        progress === undefined
-          ? blupostTheme.textSecondary
-          : mixHexColors(blupostTheme.success, blupostTheme.textSecondary, progress);
-    }
-  }
-
   private renderConnection(): void {
     const {connection} = this.presentation;
-    const label = this.layout.showPhoneName
-      ? connection.label
-      : connection.compactLabel;
-    this.refs.connection.content = ` ${label} `;
-    this.refs.connection.fg = connection.isConnected
-      ? blupostTheme.signalCyan
+    const stateColor = connection.isConnected
+      ? blupostTheme.accent
       : toneColor(connection.tone);
-    this.refs.connection.bg = blupostTheme.surfaceRaised;
+    const stateGlyph = connection.isConnected
+      ? "●"
+      : connection.isConnecting
+        ? "◌"
+        : connection.canReconnect
+          ? "○"
+          : "·";
+    for (const target of [this.refs.connection, this.refs.compactConnection]) {
+      target.content = new StyledText([
+        fg(stateColor)(`${stateGlyph} `),
+        fg(blupostTheme.textSecondary)(connection.label)
+      ]);
+      target.fg = blupostTheme.textSecondary;
+      target.bg = blupostTheme.panel;
+    }
+    const helpColor =
+      this.focusContext === "help"
+        ? blupostTheme.signalCyan
+        : blupostTheme.textTertiary;
+    this.refs.helpButton.fg = helpColor;
+    this.refs.compactHelpButton.fg = helpColor;
   }
 
   private renderThreads(): void {
-    this.threadRows.clear();
-    this.threadRowBaseColors.clear();
     clearChildren(this.refs.threadList);
     const focused = this.focusContext === "list";
-    const conversationCount = this.presentation.conversations.length;
-    this.refs.listHeader.content = new StyledText([
-      bold(
-        fg(focused ? blupostTheme.postBlue : blupostTheme.textPrimary)(
-          focused ? "▌ MESSAGES" : "MESSAGES"
-        )
-      ),
-      fg(blupostTheme.textTertiary)(
-        `\n${conversationCount} ${conversationCount === 1 ? "contact" : "contacts"}`
-      )
-    ]);
 
     if (this.presentation.conversations.length === 0) {
       this.refs.threadList.add(
         new TextRenderable(this.options.renderer, {
-          content: this.layout.showSecondaryHints
-            ? "No conversations yet\n\nAdd someone to start a session-only conversation."
-            : "No conversations yet\n\nAdd someone to begin.",
+          content: "No contacts.",
           fg: blupostTheme.textTertiary,
           wrapMode: "word",
           paddingX: this.layout.horizontalPadding
@@ -1204,52 +1024,48 @@ class BlupostTuiApp implements BlupostTui {
     for (const [index, conversation] of this.presentation.conversations.entries()) {
       const selected = this.selectedThread === conversation.number;
       const active = this.snapshot.session.active_thread === conversation.number;
-      const showPreview = this.layout.showThreadPreview;
-      const baseColor = selected
-        ? focused
+      const rowBackground =
+        selected && focused
           ? blupostTheme.selectionFocus
-          : blupostTheme.selectionIdle
-        : active
-          ? blupostTheme.selectionIdle
-          : blupostTheme.navSurface;
-      const incomingProgress = this.incomingThreadSettle.get(conversation.number);
+          : active
+            ? blupostTheme.selectionIdle
+            : blupostTheme.panel;
+      const showPreview = this.layout.showConversationPreviews;
       const row = new BoxRenderable(this.options.renderer, {
         id: `thread-row-${index}`,
         width: "100%",
-        height: this.layout.tier === "roomy" ? 3 : showPreview ? 2 : 1,
+        height: showPreview ? 2 : 1,
         flexDirection: "column",
-        paddingX: this.layout.horizontalPadding,
-        backgroundColor:
-          incomingProgress === undefined
-            ? baseColor
-            : mixHexColors(blupostTheme.selectionFocus, baseColor, incomingProgress),
+        backgroundColor: rowBackground,
         onMouseDown: event => {
           event.preventDefault();
           this.selectedThread = conversation.number;
           this.openThread(conversation.number);
         },
         onMouseOver: () => {
-          if (!selected && !active) row.backgroundColor = blupostTheme.surfaceHover;
+          if (!active && !(selected && focused))
+            row.backgroundColor = blupostTheme.surfaceHover;
         },
         onMouseOut: () => {
-          if (!selected && !active) row.backgroundColor = blupostTheme.navSurface;
+          row.backgroundColor = rowBackground;
         }
       });
-      this.threadRows.set(conversation.number, row);
-      this.threadRowBaseColors.set(conversation.number, baseColor);
-      const top = new BoxRenderable(this.options.renderer, {
+      const topLine = new BoxRenderable(this.options.renderer, {
         width: "100%",
         height: 1,
         flexDirection: "row",
-        justifyContent: "space-between"
+        justifyContent: "space-between",
+        paddingX: this.layout.horizontalPadding
       });
-      const marker = active ? "▌" : selected ? "›" : " ";
+      const marker = selected && focused ? "›" : active ? "▌" : selected ? "·" : " ";
       const label = new TextRenderable(this.options.renderer, {
         flexGrow: 1,
         content: new StyledText([
-          fg(active || selected ? blupostTheme.postBlue : blupostTheme.textTertiary)(
-            `${marker} `
-          ),
+          fg(
+            active || (selected && focused)
+              ? blupostTheme.accent
+              : blupostTheme.textTertiary
+          )(`${marker} `),
           (selected || active || conversation.unread
             ? bold
             : (value: TextChunk) => value)(
@@ -1265,30 +1081,26 @@ class BlupostTuiApp implements BlupostTui {
       const priority = conversation.unread
         ? String(conversation.unread)
         : conversation.hasDraft
-          ? "Draft"
+          ? "draft"
           : "";
       const metadata = new TextRenderable(this.options.renderer, {
-        content: priority
-          ? conversation.unread
-            ? ` ${priority} `
-            : ` ${priority.toLowerCase()} `
-          : "",
-        fg: conversation.unread ? blupostTheme.inverseText : blupostTheme.warning,
-        bg: conversation.unread
-          ? blupostTheme.postBlue
-          : priority
-            ? blupostTheme.selectionIdle
-            : blupostTheme.navSurface
+        content: conversation.unread ? ` ${priority} ` : priority ? ` ${priority}` : "",
+        fg: conversation.unread ? blupostTheme.inverseText : blupostTheme.textTertiary,
+        bg: conversation.unread ? blupostTheme.accent : rowBackground
       });
-      top.add(label);
-      top.add(metadata);
-      row.add(top);
+      topLine.add(label);
+      topLine.add(metadata);
+      row.add(topLine);
       if (showPreview) {
         row.add(
           new TextRenderable(this.options.renderer, {
-            height: 1,
-            content: `  ${conversation.preview ?? ""}`,
-            fg: blupostTheme.textTertiary,
+            id: `thread-preview-${index}`,
+            paddingRight: 1,
+            content:
+              conversation.preview || conversation.draft
+                ? `   ${conversation.preview || conversation.draft}`
+                : "",
+            fg: blupostTheme.textSecondary,
             truncate: true
           })
         );
@@ -1298,60 +1110,52 @@ class BlupostTuiApp implements BlupostTui {
   }
 
   private renderConversation(): void {
-    this.messageSurfaces.clear();
-    this.messageOutcomes.clear();
     clearChildren(this.refs.transcript);
     const active = this.presentation.activeConversation;
-    this.refs.backButton.visible = !this.layout.showSidebar;
-    this.refs.backButton.content =
-      this.layout.tier === "tiny" ? "‹ Back" : "‹ Conversations";
-    this.refs.sessionLabel.visible =
-      this.layout.showSecondaryHints && this.layout.showSidebar;
-    const conversationLabel = active?.label ?? "Choose a conversation";
+    const compactChat =
+      !this.layout.showSidebar && this.compactPane === "chat" && Boolean(active);
+    this.refs.backButton.visible = compactChat;
+    this.refs.backButton.content = "‹";
+    const conversationLabel = compactChat ? (active?.label ?? "") : "contacts";
     const conversationFocused =
       this.focusContext === "transcript" || this.focusContext === "composer";
-    const subtitle =
-      active && this.layout.chatHeaderHeight >= 3 ? "\nSession messages" : "";
+    const title = bold(
+      fg(conversationFocused ? blupostTheme.signalBright : blupostTheme.textPrimary)(
+        conversationLabel
+      )
+    );
     this.refs.conversationTitle.content = new StyledText([
-      bold(
-        fg(conversationFocused ? blupostTheme.signalBright : blupostTheme.textPrimary)(
-          `${this.focusContext === "transcript" ? "▌ " : ""}${conversationLabel}`
-        )
-      ),
-      fg(blupostTheme.textTertiary)(subtitle)
+      this.focusContext === "transcript" ? underline(title) : title
     ]);
 
     if (!active) {
-      this.refs.transcript.add(
-        new TextRenderable(this.options.renderer, {
-          content:
-            "Start a conversation\n\nChoose someone from Messages. This session stays on this machine.",
-          fg: blupostTheme.textTertiary,
-          wrapMode: "word"
-        })
-      );
+      this.refs.composerDock.visible = false;
       this.refs.composerBox.visible = false;
       return;
     }
 
+    this.refs.composerDock.visible = true;
     this.refs.composerBox.visible = true;
     if (active.groups.length === 0) {
       this.refs.transcript.add(
         new TextRenderable(this.options.renderer, {
-          content: `No messages with ${active.label} in this session`,
+          content: "No messages yet.",
           fg: blupostTheme.text,
           wrapMode: "word"
         })
       );
+    } else {
       this.refs.transcript.add(
-        new TextRenderable(this.options.renderer, {
-          marginTop: 1,
-          content: "Messages appear here only while Blupost is open.",
-          fg: blupostTheme.faint,
-          wrapMode: "word"
+        new BoxRenderable(this.options.renderer, {
+          id: "transcript-spacer",
+          width: "100%",
+          flexGrow: 1
         })
       );
-    } else {
+      const latestOutgoing = active.groups
+        .flatMap(group => group.messages)
+        .filter(message => message.state !== "received")
+        .at(-1)?.id;
       for (const group of active.groups) {
         const outgoing = group.direction === "outgoing";
         const groupView = new BoxRenderable(this.options.renderer, {
@@ -1360,15 +1164,10 @@ class BlupostTuiApp implements BlupostTui {
           alignItems: outgoing ? "flex-end" : "flex-start",
           marginBottom: 1
         });
-        groupView.add(
-          new TextRenderable(this.options.renderer, {
-            content: outgoing ? "You ▐" : `▌ ${group.label}`,
-            fg: outgoing ? blupostTheme.postBlue : blupostTheme.textSecondary,
-            marginBottom: 0
-          })
-        );
         for (const message of group.messages) {
-          groupView.add(this.messageView(message, outgoing));
+          groupView.add(
+            this.messageView(message, outgoing, message.id === latestOutgoing)
+          );
         }
         this.refs.transcript.add(groupView);
       }
@@ -1376,71 +1175,55 @@ class BlupostTuiApp implements BlupostTui {
     this.renderComposerState();
   }
 
-  private messageView(message: MessagePresentation, outgoing: boolean): BoxRenderable {
+  private messageView(
+    message: MessagePresentation,
+    outgoing: boolean,
+    showSent: boolean
+  ): BoxRenderable {
     const box = new BoxRenderable(this.options.renderer, {
       flexDirection: "column",
       alignItems: outgoing ? "flex-end" : "flex-start",
-      marginBottom: 0
+      marginBottom: 0,
+      maxWidth:
+        this.layout.tier === "roomy"
+          ? "70%"
+          : this.layout.tier === "standard"
+            ? "78%"
+            : this.layout.tier === "compact"
+              ? "90%"
+              : "100%"
     });
     const surface = new BoxRenderable(this.options.renderer, {
       id: `message-surface-${message.id}`,
-      maxWidth:
-        this.layout.tier === "roomy"
-          ? "68%"
-          : this.layout.tier === "standard"
-            ? "74%"
-            : this.layout.tier === "compact"
-              ? "88%"
-              : "100%",
-      flexDirection: "column",
-      alignItems: outgoing ? "flex-end" : "flex-start",
+      maxWidth: "100%",
       paddingX: 1,
-      border: outgoing ? ["right"] : ["left"],
-      borderStyle: "single",
-      borderColor: outgoing
-        ? blupostTheme.postBlue
-        : this.incomingSettle.has(message.id)
-          ? mixHexColors(
-              blupostTheme.signalBright,
-              blupostTheme.messageIncomingRail,
-              this.incomingSettle.get(message.id) ?? 1
-            )
-          : blupostTheme.messageIncomingRail,
-      backgroundColor: outgoing ? blupostTheme.messageOutgoing : blupostTheme.canvas
+      backgroundColor: outgoing
+        ? blupostTheme.outgoingSurface
+        : blupostTheme.surfaceRaised
     });
     surface.add(
       new TextRenderable(this.options.renderer, {
         id: `message-body-${message.id}`,
         content: linkifyMessage(message.body),
-        fg: outgoing ? blupostTheme.outgoing : blupostTheme.textPrimary,
-        selectionBg: blupostTheme.signalCyan,
+        fg: blupostTheme.textPrimary,
+        bg: outgoing ? blupostTheme.outgoingSurface : blupostTheme.surfaceRaised,
+        selectionBg: blupostTheme.accent,
         selectionFg: blupostTheme.inverseText,
         wrapMode: "word"
       })
     );
-    this.messageSurfaces.set(message.id, surface);
     box.add(surface);
-    if (message.outcome) {
+    if (message.outcome && (message.state !== "sent" || showSent)) {
       const outcome = new TextRenderable(this.options.renderer, {
         id: `message-outcome-${message.id}`,
         content: message.outcome,
         fg:
           message.state === "sending"
             ? blupostTheme.signalCyan
-            : this.sentSettle.has(message.id)
-              ? mixHexColors(
-                  blupostTheme.success,
-                  blupostTheme.textSecondary,
-                  this.sentSettle.get(message.id) ?? 1
-                )
-              : toneColor(message.outcomeTone),
-        bg:
-          message.outcomeTone === "error" || message.outcomeTone === "warning"
-            ? blupostTheme.surfaceRaised
-            : blupostTheme.canvas,
+            : toneColor(message.outcomeTone),
+        bg: blupostTheme.canvas,
         wrapMode: "word"
       });
-      this.messageOutcomes.set(message.id, outcome);
       box.add(outcome);
     }
     return box;
@@ -1449,52 +1232,35 @@ class BlupostTuiApp implements BlupostTui {
   private renderComposerState(): void {
     const active = this.presentation.activeConversation;
     if (!active) return;
-    const canSend =
-      this.presentation.connection.isConnected &&
-      !this.sendInFlight &&
-      Boolean(this.refs.composer.plainText.trim());
-    this.refs.composerLabel.visible = this.layout.showComposerLabel;
-    this.refs.composerLabel.content = new StyledText([
-      bg(
-        this.focusContext === "composer"
-          ? blupostTheme.postBlue
-          : blupostTheme.selectionIdle
-      )(
-        fg(
-          this.focusContext === "composer"
-            ? blupostTheme.inverseText
-            : blupostTheme.textSecondary
-        )(" TO ")
-      ),
-      bold(fg(blupostTheme.textPrimary)(` ${active.label}`))
-    ]);
-    this.refs.composer.placeholder = `Message ${active.label}…`;
-    this.refs.sendButton.content = this.sendInFlight
-      ? " Sending… "
-      : this.layout.tier === "tiny"
-        ? " Send "
-        : " Send ↵ ";
-    this.refs.sendButton.width = this.sendInFlight
-      ? 11
-      : this.layout.tier === "tiny"
-        ? 7
-        : 10;
-    this.refs.sendButton.fg = canSend
+    const hasDraft = Boolean(this.refs.composer.plainText.trim());
+    this.refs.composer.placeholder = "Write a message";
+    this.refs.sendButton.content = this.sendInFlight ? " … " : " ↑ ";
+    this.refs.sendButton.width = 3;
+    this.refs.sendButton.visible = true;
+    this.refs.sendButton.fg = this.presentation.connection.isConnected
       ? blupostTheme.inverseText
       : blupostTheme.textTertiary;
-    this.refs.sendButton.bg = canSend
-      ? blupostTheme.postBlue
-      : blupostTheme.selectionIdle;
-    this.refs.composerBox.borderColor =
-      this.focusContext === "composer"
-        ? blupostTheme.signalBright
-        : blupostTheme.divider;
+    this.refs.sendButton.bg = this.presentation.connection.isConnected
+      ? blupostTheme.accent
+      : blupostTheme.surfaceRaised;
+    if (this.layout.frameComposer) {
+      this.refs.composerBox.borderColor =
+        this.focusContext === "composer"
+          ? blupostTheme.signalBright
+          : blupostTheme.divider;
+      this.refs.composerBox.border = true;
+    } else {
+      this.refs.composerBox.border = false;
+    }
+    this.refs.composerPrompt.content = "";
+    this.refs.composerPrompt.width = 0;
 
-    const connectionNote = this.presentation.connection.isConnected
-      ? ""
-      : this.presentation.connection.isConnecting
-        ? "Draft stays here while connecting · nothing will queue"
-        : "Draft stays here · nothing will queue";
+    const connectionNote =
+      this.presentation.connection.isConnected || !hasDraft
+        ? ""
+        : this.presentation.connection.isConnecting
+          ? "Connecting — draft only; nothing will queue."
+          : "Offline — draft only; nothing will queue.";
     const note = this.composerError || connectionNote;
     this.refs.composerNote.content = note;
     this.refs.composerNote.fg = this.composerError
@@ -1509,14 +1275,8 @@ class BlupostTuiApp implements BlupostTui {
       this.newMessageCount > 0 && active !== null && this.newMessageThread === active;
     this.refs.newMessageNotice.visible = visible;
     this.refs.newMessageNotice.height = visible ? 1 : 0;
-    this.refs.newMessageNotice.content = visible
-      ? `↓ ${this.newMessageCount} new message${this.newMessageCount === 1 ? "" : "s"} · End to latest`
-      : "";
-    const progress = active ? this.incomingThreadSettle.get(active) : undefined;
-    this.refs.newMessageNotice.fg =
-      progress === undefined
-        ? blupostTheme.postBlue
-        : mixHexColors(blupostTheme.signalBright, blupostTheme.postBlue, progress);
+    this.refs.newMessageNotice.content = visible ? `↓ ${this.newMessageCount} new` : "";
+    this.refs.newMessageNotice.fg = blupostTheme.signalCyan;
   }
 
   private clearNewMessageNotice(): void {
@@ -1542,22 +1302,19 @@ class BlupostTuiApp implements BlupostTui {
   }
 
   private renderContactForm(): void {
-    this.refs.listHeader.visible = !this.contactFormOpen;
-    this.refs.threadList.visible = !this.contactFormOpen;
-    this.refs.addContactButton.visible = !this.contactFormOpen;
-    this.refs.contactForm.visible = this.contactFormOpen;
+    this.refs.contactHeading.visible = this.layout.showSidebar;
+    this.refs.contactHeading.height = this.layout.showSidebar ? 1 : 0;
+    this.refs.contactHeading.marginBottom = this.layout.showSidebar ? 1 : 0;
     this.refs.contactError.visible = Boolean(this.contactError);
     this.refs.contactError.height = this.contactError ? 2 : 0;
     this.refs.contactError.content = this.contactError;
-    this.refs.contactDisclosure.content =
-      this.layout.tier === "tiny"
-        ? "Saved locally in Blupost config."
-        : "Saved locally in your Blupost config.";
+    this.refs.contactDisclosure.content = "Stored locally.";
     this.refs.saveContactButton.content = this.contactSaveInFlight
-      ? " Saving… "
+      ? " saving… "
       : this.contactControl === "save"
-        ? "› Save contact "
-        : " Save contact ";
+        ? "› save "
+        : " save ";
+    this.refs.saveContactButton.width = this.contactSaveInFlight ? 10 : 8;
     this.refs.saveContactButton.fg = this.contactSaveInFlight
       ? blupostTheme.textTertiary
       : this.contactControl === "save"
@@ -1572,23 +1329,25 @@ class BlupostTuiApp implements BlupostTui {
         ? blupostTheme.textPrimary
         : blupostTheme.textSecondary;
     this.refs.cancelContactButton.content =
-      this.contactControl === "cancel" ? "› Cancel " : " Cancel ";
+      this.contactControl === "cancel" ? "› cancel " : " cancel ";
     this.refs.cancelContactButton.bg =
       this.contactControl === "cancel"
         ? blupostTheme.selectionFocus
-        : blupostTheme.navSurface;
+        : blupostTheme.surfaceRaised;
   }
 
   private renderHelp(): void {
     clearChildren(this.refs.helpPanel);
     if (this.focusContext !== "help") return;
-    this.refs.helpPanel.add(
-      new TextRenderable(this.options.renderer, {
-        content: new StyledText([bold(fg(blupostTheme.postBlue)("▌ HELP"))]),
-        fg: blupostTheme.postBlue,
-        marginBottom: 1
-      })
-    );
+    if (this.layout.showSidebar) {
+      this.refs.helpPanel.add(
+        new TextRenderable(this.options.renderer, {
+          content: new StyledText([bold(fg(blupostTheme.textPrimary)("Help"))]),
+          fg: blupostTheme.textPrimary,
+          marginBottom: 1
+        })
+      );
+    }
     this.refs.helpPanel.add(
       new TextRenderable(this.options.renderer, {
         content: this.helpText(),
@@ -1603,37 +1362,25 @@ class BlupostTuiApp implements BlupostTui {
   private helpText(): string {
     const contextHelp =
       this.helpReturnFocus === "list"
-        ? `Conversation list
-↑ / ↓ or j / k  Move selection
-Enter             Open conversation
-n or a            Add contact
-c                 Reconnect when available`
+        ? `↑/↓ or j/k  select
+Enter       open
+n           new contact`
         : this.helpReturnFocus === "transcript"
-          ? `Transcript
-↑ / ↓             Scroll one line
-PageUp / PageDown Scroll one page
-Home / End        Oldest / latest
-Tab or i          Write a message`
-          : `Composer
-Enter             Send once
-Shift+Enter       New line
-Esc               Browse transcript
+          ? `↑/↓        scroll
+Home/End   oldest/latest
+i          write`
+          : `Enter       send
+Shift+Enter new line
+Esc         transcript`;
+    return `${contextHelp}
 
-The active recipient is always shown above the composer.`;
-    return `Messages are session-only and disappear when Blupost closes. Drafts are preserved per conversation.
+Tab         next area
+Esc         back
+Ctrl+P      search and actions
+?           help
+Ctrl+C      quit
 
-${contextHelp}
-
-Global
-Tab / Shift+Tab   Move focus
-Esc               Step back or close
-?                 Open Help outside text entry
-Ctrl+P            Open contacts and commands
-Ctrl+C            Quit safely
-
-Blupost never queues a disconnected send or retries a message automatically.
-
-Links and clipboard writes are mediated by your terminal. Hold your terminal's mouse-selection modifier when native selection is preferred.`;
+Messages and drafts last only while Blupost is open. Offline sends are never queued or retried.`;
   }
 
   private paletteEntries(): PaletteEntry[] {
@@ -1691,14 +1438,13 @@ Links and clipboard writes are mediated by your terminal. Hold your terminal's m
       );
       return;
     }
-    const showDescriptions = this.layout.tier !== "tiny";
     const fullWidthPanel =
       this.layout.tier === "compact" || this.layout.tier === "tiny";
     const panelWidth = Math.min(
-      72,
+      52,
       fullWidthPanel
         ? this.options.renderer.terminalWidth
-        : Math.ceil(this.options.renderer.terminalWidth * 0.7)
+        : Math.ceil(this.options.renderer.terminalWidth * 0.55)
     );
     const resultWidth = Math.max(
       1,
@@ -1713,8 +1459,8 @@ Links and clipboard writes are mediated by your terminal. Hold your terminal's m
       const row = new BoxRenderable(this.options.renderer, {
         id: `palette-row-${index}`,
         width: resultWidth,
-        height: showDescriptions ? 2 : 1,
-        flexDirection: "column",
+        height: 1,
+        flexDirection: "row",
         paddingX: 1,
         backgroundColor: selected
           ? blupostTheme.selectionFocus
@@ -1733,7 +1479,7 @@ Links and clipboard writes are mediated by your terminal. Hold your terminal's m
       row.add(
         new TextRenderable(this.options.renderer, {
           id: `palette-row-${index}-label`,
-          content: `${selected ? "▌" : " "} ${entry.label}`,
+          content: `${selected ? "›" : " "} ${entry.label}`,
           fg: selected ? blupostTheme.textPrimary : blupostTheme.textSecondary,
           truncate: true,
           onMouseDown: event => {
@@ -1742,19 +1488,6 @@ Links and clipboard writes are mediated by your terminal. Hold your terminal's m
           }
         })
       );
-      if (showDescriptions) {
-        row.add(
-          new TextRenderable(this.options.renderer, {
-            content: `  ${entry.description}`,
-            fg: blupostTheme.textTertiary,
-            truncate: true,
-            onMouseDown: event => {
-              event.preventDefault();
-              activate();
-            }
-          })
-        );
-      }
       this.refs.paletteResults.add(row);
     }
     this.refs.paletteResults.scrollChildIntoView(
@@ -1816,9 +1549,26 @@ Links and clipboard writes are mediated by your terminal. Hold your terminal's m
   }
 
   private renderVisibility(): void {
+    const setCompactTitle = (title: string): void => {
+      if (this.layout.showSidebar) return;
+      this.refs.backButton.visible = false;
+      this.refs.conversationTitle.content = new StyledText([
+        bold(fg(blupostTheme.textPrimary)(title))
+      ]);
+    };
     const paletteOpen = this.focusContext === "palette";
     this.refs.paletteOverlay.visible = paletteOpen;
+    this.refs.contactView.visible = false;
     if (paletteOpen) {
+      setCompactTitle("Actions");
+      this.refs.helpPanel.visible = false;
+      this.refs.sidebar.visible = false;
+      this.refs.chat.visible = false;
+      return;
+    }
+    if (this.contactFormOpen) {
+      setCompactTitle("New contact");
+      this.refs.contactView.visible = true;
       this.refs.helpPanel.visible = false;
       this.refs.sidebar.visible = false;
       this.refs.chat.visible = false;
@@ -1827,6 +1577,7 @@ Links and clipboard writes are mediated by your terminal. Hold your terminal's m
     const helpOpen = this.focusContext === "help";
     this.refs.helpPanel.visible = helpOpen;
     if (helpOpen) {
+      setCompactTitle("Help");
       this.refs.sidebar.visible = false;
       this.refs.chat.visible = false;
       return;
@@ -1838,60 +1589,27 @@ Links and clipboard writes are mediated by your terminal. Hold your terminal's m
       return;
     }
 
-    const showList = this.contactFormOpen || this.compactPane === "list";
+    const showList = this.compactPane === "list";
     this.refs.sidebar.visible = showList;
     this.refs.chat.visible = !showList;
   }
 
-  private renderFooter(): void {
-    const chrome = createBlupostChrome(
-      this.focusContext,
-      this.layout.tier,
-      this.presentation.connection.canReconnect
-    );
-    this.refs.modeBadge.content = ` ${chrome.modeLabel} `;
-    this.refs.modeBadge.width = chrome.modeLabel.length + 2;
-    this.refs.modeBadge.fg =
-      chrome.modeTone === "neutral"
-        ? blupostTheme.textPrimary
-        : blupostTheme.inverseText;
-    this.refs.modeBadge.bg =
-      chrome.modeTone === "signal"
-        ? blupostTheme.signalCyan
-        : chrome.modeTone === "post"
-          ? blupostTheme.postBlue
-          : blupostTheme.selectionIdle;
-    this.refs.status.content = this.noticeMessage
-      ? this.noticeMessage
-      : keyRibbonContent(chrome.actions);
-    this.refs.status.fg = this.noticeMessage
-      ? toneColor(this.noticeTone)
-      : blupostTheme.textSecondary;
-    this.refs.sessionCount.visible =
-      this.layout.showSessionCount &&
-      !this.noticeMessage &&
-      this.focusContext !== "help" &&
-      this.focusContext !== "palette";
-    this.refs.sessionCount.content = this.refs.sessionCount.visible
-      ? `${this.presentation.sessionMessageCount} SESSION  `
-      : "";
-    this.refs.helpButton.content =
-      this.focusContext === "help"
-        ? " Esc "
-        : this.layout.tier === "tiny"
-          ? " ? "
-          : " ? Help ";
-    this.refs.helpButton.width =
-      this.focusContext === "help" ? 5 : this.layout.tier === "tiny" ? 3 : 8;
+  private renderNotice(): void {
+    const visible = Boolean(this.noticeMessage);
+    this.refs.notice.visible = visible;
+    this.refs.notice.height = visible ? 1 : 0;
+    this.refs.notice.content = this.noticeMessage;
+    this.refs.notice.fg = toneColor(this.noticeTone);
   }
 
   private applyComposerHeight(): void {
-    if (!this.refs.composerBox.visible) return;
+    if (!this.refs.composerDock.visible) return;
     const text = this.refs.composer.plainText;
     const detailWidth = this.layout.showSidebar
       ? this.options.renderer.terminalWidth - this.layout.sidebarWidth
       : this.options.renderer.terminalWidth;
-    const inputWidth = Math.max(12, detailWidth - this.refs.sendButton.width - 4);
+    const buttonWidth = this.refs.sendButton.visible ? this.refs.sendButton.width : 0;
+    const inputWidth = Math.max(12, detailWidth - buttonWidth - 5);
     const rows = text
       .split("\n")
       .reduce(
@@ -1904,15 +1622,12 @@ Links and clipboard writes are mediated by your terminal. Hold your terminal's m
         ? 2
         : 1
       : 0;
-    const labelRows = this.layout.showComposerLabel ? 1 : 0;
+    const borderRows = this.layout.frameComposer ? 2 : 0;
     this.refs.composerRow.height = contentRows;
     this.refs.composer.height = contentRows;
     this.refs.composerNote.height = noteRows;
-    const minimumRows = this.layout.tier === "tiny" ? 3 : 4;
-    this.refs.composerBox.height = Math.max(
-      minimumRows,
-      1 + labelRows + contentRows + noteRows
-    );
+    this.refs.composerBox.height = borderRows + contentRows + noteRows;
+    this.refs.composerDock.height = borderRows + contentRows + noteRows;
   }
 
   private handleSelection = (selection: Selection): void => {
@@ -1955,7 +1670,7 @@ Links and clipboard writes are mediated by your terminal. Hold your terminal's m
     this.selectedThread = choice.number;
     this.noticeMessage = "";
     this.renderThreads();
-    this.renderFooter();
+    this.renderNotice();
     this.refs.threadList.scrollChildIntoView(`thread-row-${next}`);
     this.options.renderer.requestRender();
   }
@@ -2083,22 +1798,6 @@ Links and clipboard writes are mediated by your terminal. Hold your terminal's m
       this.contactSaveInFlight = false;
       if (!this.stopped) this.render();
     }
-  }
-
-  private startConnectionPulse(): void {
-    const frames = ["◌", "◔", "◑", "◕", "●"];
-    this.motion.repeat("connection-pulse", 620, progress => {
-      this.spinner =
-        frames[Math.min(frames.length - 1, Math.floor(progress * frames.length))] ??
-        "◌";
-      if (this.stopped) return;
-      this.presentation = createBlupostPresentation(
-        this.snapshot,
-        this.spinner,
-        this.sendingSpinner
-      );
-      this.renderConnection();
-    });
   }
 
   private openHelp(): void {
@@ -2362,48 +2061,64 @@ Links and clipboard writes are mediated by your terminal. Hold your terminal's m
     this.applyFocus();
   };
 
+  private handleCapabilities = (): void => {
+    this.syncBrandRendering();
+    this.options.renderer.requestRender();
+  };
+
   private handleRendererDestroy = (): void => {
     void this.stop();
   };
 
   private applyLayout(): void {
-    this.refs.header.height = this.layout.headerHeight;
+    this.refs.header.visible = !this.layout.showSidebar;
+    this.refs.header.height = this.layout.showSidebar
+      ? 0
+      : this.layout.compactHeaderHeight;
     this.refs.header.paddingX = this.layout.horizontalPadding;
-    this.refs.brand.width = this.layout.showLargeBrand ? 6 : 4;
-    this.refs.brand.height = this.layout.showLargeBrand ? 3 : 2;
-    this.refs.footer.height = this.layout.footerHeight;
-    this.refs.footer.paddingX = this.layout.horizontalPadding;
+    this.refs.sidebarBrandRow.visible = this.layout.showSidebar;
+    this.refs.sidebarBrandRow.height = this.layout.showSidebar ? 4 : 0;
+    this.refs.sidebarStatus.visible = this.layout.showSidebar;
     this.refs.sidebar.width = this.layout.showSidebar
       ? this.layout.sidebarWidth
       : "100%";
     this.refs.sidebar.border = this.layout.showSidebar ? ["right"] : false;
-    this.refs.listHeader.height = this.layout.tier === "tiny" ? 1 : 2;
-    this.refs.listHeader.paddingX = this.layout.horizontalPadding;
     this.refs.threadList.paddingX = 0;
     this.refs.addContactButton.paddingX = this.layout.horizontalPadding;
     this.refs.contactForm.paddingX = this.layout.horizontalPadding;
+    this.refs.contactForm.border = this.layout.tier !== "tiny";
     this.refs.contactNumberLabel.marginTop = this.layout.tier === "tiny" ? 0 : 1;
     this.refs.contactDisclosure.marginTop = this.layout.tier === "tiny" ? 0 : 1;
-    this.refs.contactDisclosure.height = this.layout.tier === "tiny" ? 1 : 2;
-    this.refs.chatHeader.height = this.layout.chatHeaderHeight;
-    this.refs.chatHeader.border = this.layout.tier === "tiny" ? false : ["bottom"];
-    this.refs.chatHeader.paddingX = this.layout.horizontalPadding;
-    this.refs.backButton.marginRight = this.layout.tier === "tiny" ? 1 : 2;
+    this.refs.contactDisclosure.height = 1;
+    this.refs.backButton.marginRight = 1;
     this.refs.transcript.paddingX = this.layout.transcriptPadding;
     this.refs.transcript.paddingY = this.layout.showSidebar ? 1 : 0;
+    this.refs.composerDock.paddingX = this.layout.frameComposer ? 1 : 0;
+    this.refs.composerBox.border = this.layout.frameComposer;
     this.refs.helpPanel.paddingX = this.layout.horizontalPadding;
-    this.refs.palettePanel.width =
-      this.layout.tier === "compact" || this.layout.tier === "tiny" ? "100%" : "70%";
+    this.refs.palettePanel.width = "100%";
     this.refs.palettePanel.height =
       this.layout.tier === "tiny"
         ? "100%"
         : Math.min(
-            14,
-            this.options.renderer.terminalHeight - this.layout.headerHeight - 1
+            11,
+            this.options.renderer.terminalHeight -
+              (this.layout.showSidebar ? 0 : this.layout.compactHeaderHeight)
           );
     this.refs.palettePanel.border = this.layout.tier !== "tiny";
-    this.refs.composerLabel.visible = this.layout.showComposerLabel;
+    this.syncBrandRendering();
     this.applyComposerHeight();
+  }
+
+  private syncBrandRendering(): void {
+    const sidebarUsesImage = this.refs.sidebarBrand.effectiveProtocol !== "blocks";
+    const compactUsesImage = this.refs.compactBrand.effectiveProtocol !== "blocks";
+    this.refs.sidebarBrand.visible = this.layout.showSidebar && sidebarUsesImage;
+    this.refs.sidebarBrandFallback.visible =
+      this.layout.showSidebar && !sidebarUsesImage;
+    this.refs.compactBrand.visible = !this.layout.showSidebar && compactUsesImage;
+    this.refs.compactBrandFallback.visible =
+      !this.layout.showSidebar && !compactUsesImage;
   }
 
   private reportError(error: unknown): void {
@@ -2414,7 +2129,7 @@ Links and clipboard writes are mediated by your terminal. Hold your terminal's m
   private setNotice(message: string, tone: PresentationTone): void {
     this.noticeMessage = message;
     this.noticeTone = tone;
-    this.renderFooter();
+    this.renderNotice();
     this.options.renderer.requestRender();
   }
 
@@ -2437,7 +2152,7 @@ Links and clipboard writes are mediated by your terminal. Hold your terminal's m
     }
     this.renderComposerState();
     this.applyComposerHeight();
-    this.renderFooter();
+    this.renderNotice();
     this.options.renderer.requestRender();
   }
 
@@ -2510,7 +2225,7 @@ Links and clipboard writes are mediated by your terminal. Hold your terminal's m
   private async reconnect(): Promise<void> {
     if (this.presentation.connection.isConnecting) return;
     this.noticeMessage = "";
-    this.renderFooter();
+    this.renderNotice();
     try {
       await this.options.engine.connect();
     } catch (error) {

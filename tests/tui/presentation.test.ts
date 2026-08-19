@@ -77,7 +77,7 @@ function fixture(): EngineSnapshot {
 }
 
 test("builds stable conversation rows without inventing history metadata", () => {
-  const presentation = createBlupostPresentation(fixture(), "◌");
+  const presentation = createBlupostPresentation(fixture());
 
   expect(presentation.conversations.map(item => item.label)).toEqual([
     "alice",
@@ -85,57 +85,52 @@ test("builds stable conversation rows without inventing history metadata", () =>
     "+12025550199"
   ]);
   expect(presentation.conversations[0]).toMatchObject({
+    preview: "Indeterminate outgoing",
     unread: 2,
-    hasDraft: true,
-    preview: "Indeterminate outgoing"
+    hasDraft: true
   });
   expect(presentation.conversations[1]).toMatchObject({
+    preview: "",
     unread: 0,
-    hasDraft: false,
-    preview: null
+    hasDraft: false
   });
 });
 
 test("groups adjacent directions and keeps outcome language message-local", () => {
-  const presentation = createBlupostPresentation(fixture(), "◌");
+  const presentation = createBlupostPresentation(fixture());
 
   expect(presentation.activeConversation?.label).toBe("alice");
   expect(presentation.activeConversation?.groups).toHaveLength(2);
   expect(presentation.activeConversation?.groups[0]).toMatchObject({
-    direction: "incoming",
-    label: "alice"
+    direction: "incoming"
   });
   expect(presentation.activeConversation?.groups[0]?.messages).toHaveLength(2);
   expect(presentation.activeConversation?.groups[1]).toMatchObject({
-    direction: "outgoing",
-    label: "You"
+    direction: "outgoing"
   });
-  expect(presentation.activeConversation?.groups[1]?.messages[0]?.outcome).toBe(
-    "✓ Sent"
-  );
+  expect(presentation.activeConversation?.groups[1]?.messages[0]?.outcome).toBe("✓");
   expect(presentation.activeConversation?.groups[1]?.messages[0]).toMatchObject({
     state: "sent",
     outcomeTone: "muted"
   });
   expect(presentation.activeConversation?.groups[1]?.messages[1]?.outcome).toBe(
-    "? Check your phone — outcome unknown"
+    "Check your phone — outcome unknown"
   );
 });
 
 test("derives truthful connection labels and reconnect capability", () => {
-  const connected = createBlupostPresentation(fixture(), "◌");
+  const connected = createBlupostPresentation(fixture());
   expect(connected.connection).toMatchObject({
-    label: "● Connected · Fixture phone",
-    compactLabel: "● Connected",
+    label: "connected",
     canReconnect: false,
     isConnected: true
   });
 
   const disconnectedFixture = fixture();
   disconnectedFixture.connection = {state: "disconnected"};
-  const disconnected = createBlupostPresentation(disconnectedFixture, "◌");
+  const disconnected = createBlupostPresentation(disconnectedFixture);
   expect(disconnected.connection).toMatchObject({
-    label: "○ Disconnected",
+    label: "offline",
     canReconnect: true,
     isConnected: false
   });

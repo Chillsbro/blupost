@@ -1,0 +1,1157 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Blupost UI Lab</title>
+    <style>
+      @font-face {
+        font-family: "Geist Lab";
+        src: url("./fonts/Geist-Variable.woff2") format("woff2");
+        font-style: normal;
+        font-weight: 100 900;
+        font-display: swap;
+      }
+
+      @font-face {
+        font-family: "Geist Mono Lab";
+        src: url("./fonts/GeistMono-Variable.woff2") format("woff2");
+        font-style: normal;
+        font-weight: 100 900;
+        font-display: swap;
+      }
+
+      :root {
+        color-scheme: dark;
+
+        /* Edit these six values directly or use the controls in the page. */
+        --accent: #168bff;
+        --canvas: #0b0e12;
+        --panel: #151a21;
+        --raised: #1c232c;
+        --text: #e8edf3;
+        --muted: #7f8b99;
+
+        --line: color-mix(in srgb, var(--panel) 74%, var(--text) 12%);
+        --active: color-mix(in srgb, var(--panel) 78%, var(--accent) 22%);
+        --outgoing: color-mix(in srgb, var(--canvas) 74%, var(--accent) 26%);
+        --accent-soft: color-mix(in srgb, var(--accent) 24%, transparent);
+        --terminal-pad: 20px;
+        --contact-pad: 12px;
+        --message-gap: 7px;
+        --group-gap: 16px;
+        --radius: 7px;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        min-height: 100%;
+        margin: 0;
+      }
+
+      body {
+        background: #080a0d;
+        color: #dce3eb;
+        font-family:
+          "Geist Lab", "Geist Sans", Geist, Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+          "Segoe UI", sans-serif;
+      }
+
+      button,
+      input,
+      textarea {
+        font: inherit;
+      }
+
+      button {
+        color: inherit;
+      }
+
+      .lab {
+        min-height: 100vh;
+        display: grid;
+        grid-template-columns: 272px minmax(0, 1fr);
+      }
+
+      .inspector {
+        position: sticky;
+        top: 0;
+        height: 100vh;
+        overflow: auto;
+        padding: 24px 20px;
+        border-right: 1px solid #242a32;
+        background: #0e1116;
+      }
+
+      .eyebrow {
+        margin: 0 0 8px;
+        color: #708093;
+        font: 600 11px/1.2 "Geist Mono Lab", ui-monospace, "SFMono-Regular", Consolas, monospace;
+        letter-spacing: 0.13em;
+        text-transform: uppercase;
+      }
+
+      h1 {
+        margin: 0;
+        color: #f2f5f8;
+        font-size: 22px;
+        letter-spacing: -0.025em;
+      }
+
+      .intro {
+        margin: 10px 0 26px;
+        color: #8995a3;
+        font-size: 13px;
+        line-height: 1.55;
+      }
+
+      .control-group {
+        padding: 18px 0;
+        border-top: 1px solid #20262e;
+      }
+
+      .control-group h2 {
+        margin: 0 0 12px;
+        color: #cbd3dc;
+        font-size: 12px;
+        font-weight: 650;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+
+      .token-list {
+        display: grid;
+        gap: 9px;
+      }
+
+      .token {
+        display: grid;
+        grid-template-columns: 24px 1fr 76px;
+        align-items: center;
+        gap: 9px;
+        min-width: 0;
+      }
+
+      .token label {
+        overflow: hidden;
+        color: #9ca7b4;
+        font-size: 12px;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      input[type="color"] {
+        width: 24px;
+        height: 24px;
+        padding: 0;
+        border: 1px solid #343b46;
+        border-radius: 4px;
+        background: transparent;
+        cursor: pointer;
+      }
+
+      input[type="color"]::-moz-color-swatch {
+        border: 0;
+        border-radius: 3px;
+      }
+
+      .hex {
+        width: 100%;
+        padding: 5px 6px;
+        border: 1px solid #2c333d;
+        border-radius: 4px;
+        outline: 0;
+        background: #12161c;
+        color: #b9c3ce;
+        font: 500 11px/1 "Geist Mono Lab", ui-monospace, "SFMono-Regular", Consolas, monospace;
+        text-transform: uppercase;
+      }
+
+      .hex:focus {
+        border-color: #168bff;
+      }
+
+      .segmented {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        overflow: hidden;
+        border: 1px solid #2c333d;
+        border-radius: 5px;
+      }
+
+      .segmented button {
+        min-width: 0;
+        padding: 7px 4px;
+        border: 0;
+        border-right: 1px solid #2c333d;
+        background: #12161c;
+        color: #818d9a;
+        font-size: 11px;
+        cursor: pointer;
+      }
+
+      .segmented button:last-child {
+        border-right: 0;
+      }
+
+      .segmented button[aria-pressed="true"] {
+        background: #202b38;
+        color: #66adff;
+      }
+
+      .switch-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        color: #9ca7b4;
+        font-size: 12px;
+      }
+
+      .switch-row input {
+        accent-color: #168bff;
+      }
+
+      .actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+      }
+
+      .action {
+        padding: 8px 10px;
+        border: 1px solid #303844;
+        border-radius: 5px;
+        background: #161b22;
+        color: #aeb8c3;
+        font-size: 12px;
+        cursor: pointer;
+      }
+
+      .action:hover,
+      .action:focus-visible {
+        border-color: #168bff;
+        outline: 0;
+        color: #dce7f4;
+      }
+
+      .brief {
+        width: 100%;
+        height: 106px;
+        resize: vertical;
+        padding: 9px;
+        border: 1px solid #272e37;
+        border-radius: 5px;
+        outline: 0;
+        background: #0a0d11;
+        color: #7f8b99;
+        font: 500 10px/1.45 "Geist Mono Lab", ui-monospace, "SFMono-Regular", Consolas, monospace;
+      }
+
+      .canvas {
+        min-width: 0;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .canvas-bar {
+        min-height: 64px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 20px;
+        padding: 14px 24px;
+        border-bottom: 1px solid #1b2027;
+        background: #0a0d11;
+      }
+
+      .canvas-title {
+        min-width: 0;
+      }
+
+      .canvas-title strong {
+        display: block;
+        color: #d7dee6;
+        font-size: 13px;
+        font-weight: 620;
+      }
+
+      .canvas-title span {
+        display: block;
+        margin-top: 3px;
+        color: #6d7885;
+        font-size: 11px;
+      }
+
+      .viewport-picker {
+        width: 248px;
+        flex: 0 0 auto;
+      }
+
+      .preview-stage {
+        min-height: 0;
+        flex: 1;
+        display: grid;
+        place-items: center;
+        overflow: auto;
+        padding: 34px;
+        background:
+          radial-gradient(circle at 50% 45%, #151a21 0, #0b0e12 48%, #080a0d 76%);
+      }
+
+      .preview-shell {
+        width: min(1120px, 100%);
+        transition: width 180ms ease;
+      }
+
+      .preview-shell[data-viewport="compact"] {
+        width: min(650px, 100%);
+      }
+
+      .preview-shell[data-viewport="tiny"] {
+        width: min(440px, 100%);
+      }
+
+      .terminal {
+        position: relative;
+        width: 100%;
+        aspect-ratio: 60 / 34;
+        min-height: 0;
+        overflow: hidden;
+        display: grid;
+        grid-template-columns: 246px minmax(0, 1fr);
+        border: 1px solid #252b33;
+        border-radius: 10px;
+        background: var(--canvas);
+        box-shadow:
+          0 28px 80px rgb(0 0 0 / 0.46),
+          0 0 0 1px rgb(255 255 255 / 0.015) inset;
+        color: var(--text);
+        font: 500 14px/1.4 "Geist Mono Lab", "Geist Mono", "JetBrains Mono", "Cascadia Mono",
+          ui-monospace, "SFMono-Regular", Consolas, monospace;
+        transition:
+          min-height 180ms ease,
+          border-radius 180ms ease;
+      }
+
+      .brand-mark {
+        position: absolute;
+        top: 14px;
+        left: 14px;
+        z-index: 3;
+        width: 22px;
+        height: 22px;
+        color: var(--accent);
+        pointer-events: none;
+      }
+
+      .sidebar {
+        min-height: 0;
+        display: grid;
+        grid-template-rows: 54px minmax(0, 1fr) auto;
+        border-right: 1px solid var(--line);
+        background: var(--panel);
+      }
+
+      .sidebar-header {
+        display: flex;
+        align-items: flex-end;
+        justify-content: flex-end;
+        padding: 0 15px 7px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .contacts {
+        min-height: 0;
+        overflow: hidden;
+        padding: 8px 8px 10px;
+      }
+
+      .contact {
+        position: relative;
+        min-height: 54px;
+        display: grid;
+        align-content: center;
+        gap: 3px;
+        margin-bottom: 3px;
+        padding: 8px var(--contact-pad) 8px calc(var(--contact-pad) + 3px);
+        border-radius: 5px;
+        color: var(--muted);
+      }
+
+      .contact.active {
+        background: var(--active);
+        color: var(--text);
+      }
+
+      .contact.active::before {
+        content: "";
+        position: absolute;
+        inset: 8px auto 8px 0;
+        width: 2px;
+        border-radius: 2px;
+        background: var(--accent);
+        box-shadow: 0 0 12px var(--accent-soft);
+      }
+
+      .contact-line {
+        min-width: 0;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+      }
+
+      .alias {
+        overflow: hidden;
+        color: inherit;
+        font-weight: 680;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .preview {
+        overflow: hidden;
+        color: var(--muted);
+        font-size: 12px;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .unread {
+        min-width: 19px;
+        height: 19px;
+        display: grid;
+        place-items: center;
+        border-radius: 10px;
+        background: var(--accent);
+        color: #f5f9ff;
+        font-size: 10px;
+        font-weight: 800;
+      }
+
+      .sidebar-action {
+        min-height: 38px;
+        display: flex;
+        align-items: center;
+        padding: 0 15px;
+        border-top: 1px solid var(--line);
+        gap: 9px;
+        color: var(--muted);
+      }
+
+      .sidebar-action .plus {
+        color: var(--accent);
+        font-size: 17px;
+      }
+
+      .connection {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: var(--muted);
+        font-size: 11px;
+      }
+
+      .connection-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--accent);
+        box-shadow: 0 0 8px var(--accent-soft);
+      }
+
+      .conversation {
+        min-width: 0;
+        min-height: 0;
+        display: grid;
+        grid-template-rows: minmax(0, 1fr) auto;
+        background: var(--canvas);
+      }
+
+      .compact-context {
+        display: none;
+      }
+
+      .transcript {
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-end;
+        gap: var(--group-gap);
+        overflow: hidden;
+        padding: calc(var(--terminal-pad) * 1.35) var(--terminal-pad);
+      }
+
+      .message-group {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--message-gap);
+      }
+
+      .message-group.outgoing {
+        align-items: flex-end;
+      }
+
+      .message {
+        max-width: min(68%, 570px);
+        padding: 8px 11px;
+        border: 1px solid color-mix(in srgb, var(--raised) 82%, var(--text) 8%);
+        border-radius: var(--radius);
+        background: var(--raised);
+        color: var(--text);
+        line-height: 1.45;
+        box-shadow: 0 1px 0 rgb(255 255 255 / 0.02) inset;
+      }
+
+      .outgoing .message {
+        border-color: color-mix(in srgb, var(--outgoing) 72%, var(--accent) 28%);
+        background: var(--outgoing);
+      }
+
+      .terminal.bare-messages .message {
+        padding: 1px 0;
+        border-color: transparent;
+        border-radius: 0;
+        background: transparent;
+        box-shadow: none;
+      }
+
+      .message-meta {
+        padding: 0 4px;
+        color: var(--accent);
+        font-size: 10px;
+      }
+
+      .composer-wrap {
+        padding: 0 var(--terminal-pad) var(--terminal-pad);
+      }
+
+      .composer {
+        min-height: 46px;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 34px;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 7px 6px 14px;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        background: var(--panel);
+        box-shadow: 0 0 0 1px rgb(0 0 0 / 0.18) inset;
+      }
+
+      .composer:focus-within {
+        border-color: var(--accent);
+        box-shadow: 0 0 0 2px var(--accent-soft);
+      }
+
+      .composer-copy {
+        min-width: 0;
+        color: var(--muted);
+        outline: 0;
+      }
+
+      .send {
+        width: 30px;
+        height: 30px;
+        display: grid;
+        place-items: center;
+        border: 0;
+        border-radius: 4px;
+        background: var(--accent);
+        color: white;
+        cursor: default;
+        font-size: 16px;
+        line-height: 1;
+      }
+
+      [contenteditable="true"] {
+        cursor: text;
+      }
+
+      [contenteditable="true"]:hover {
+        outline: 1px dashed color-mix(in srgb, var(--accent) 68%, transparent);
+        outline-offset: 2px;
+      }
+
+      [contenteditable="true"]:focus {
+        outline: 1px solid var(--accent);
+        outline-offset: 2px;
+      }
+
+      .preview-shell[data-viewport="compact"] .terminal,
+      .preview-shell[data-viewport="tiny"] .terminal {
+        grid-template-columns: 1fr;
+      }
+
+      .preview-shell[data-viewport="compact"] .terminal {
+        min-height: 0;
+        aspect-ratio: 30 / 18;
+      }
+
+      .preview-shell[data-viewport="tiny"] .terminal {
+        min-height: 0;
+        aspect-ratio: 20 / 12;
+        font-size: 12px;
+        --terminal-pad: 11px;
+        --group-gap: 10px;
+        --message-gap: 4px;
+      }
+
+      .preview-shell[data-viewport="compact"] .sidebar,
+      .preview-shell[data-viewport="tiny"] .sidebar {
+        display: none;
+      }
+
+      .preview-shell[data-viewport="compact"] .conversation,
+      .preview-shell[data-viewport="tiny"] .conversation {
+        grid-template-rows: auto minmax(0, 1fr) auto;
+      }
+
+      .preview-shell[data-viewport="compact"] .compact-context,
+      .preview-shell[data-viewport="tiny"] .compact-context {
+        min-height: 38px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 0 var(--terminal-pad);
+        border-bottom: 1px solid var(--line);
+        background: var(--panel);
+      }
+
+      .compact-person {
+        color: var(--text);
+        font-weight: 680;
+      }
+
+      .back {
+        margin-right: 7px;
+        color: var(--accent);
+      }
+
+      .compact-state {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        color: var(--muted);
+        font-size: 10px;
+      }
+
+      .preview-shell[data-viewport="compact"] .brand-mark {
+        top: 9px;
+        left: 12px;
+        width: 20px;
+        height: 20px;
+      }
+
+      .preview-shell[data-viewport="compact"] .compact-context {
+        padding-left: 44px;
+      }
+
+      .preview-shell[data-viewport="tiny"] .brand-mark {
+        top: 10px;
+        left: 10px;
+        width: 18px;
+        height: 18px;
+      }
+
+      .preview-shell[data-viewport="tiny"] .compact-context {
+        padding-left: 38px;
+      }
+
+      .preview-shell[data-viewport="tiny"] .transcript {
+        padding-block: 10px;
+      }
+
+      .preview-shell[data-viewport="tiny"] .message {
+        max-width: 84%;
+        padding: 5px 7px;
+      }
+
+      .preview-shell[data-viewport="tiny"] .composer {
+        min-height: 38px;
+        grid-template-columns: minmax(0, 1fr) 28px;
+        padding: 4px 5px 4px 10px;
+      }
+
+      .preview-shell[data-viewport="tiny"] .send {
+        width: 25px;
+        height: 25px;
+      }
+
+      html[data-density="tight"] {
+        --terminal-pad: 14px;
+        --contact-pad: 9px;
+        --message-gap: 3px;
+        --group-gap: 10px;
+        --radius: 4px;
+      }
+
+      html[data-density="airy"] {
+        --terminal-pad: 28px;
+        --contact-pad: 15px;
+        --message-gap: 10px;
+        --group-gap: 22px;
+        --radius: 9px;
+      }
+
+      .toast {
+        position: fixed;
+        right: 24px;
+        bottom: 24px;
+        z-index: 10;
+        padding: 9px 12px;
+        border: 1px solid #2d91ff;
+        border-radius: 5px;
+        background: #10233a;
+        color: #dcecff;
+        font-size: 12px;
+        opacity: 0;
+        transform: translateY(8px);
+        pointer-events: none;
+        transition: 140ms ease;
+      }
+
+      .toast.visible {
+        opacity: 1;
+        transform: translateY(0);
+      }
+
+      body.presentation .lab {
+        grid-template-columns: 1fr;
+      }
+
+      body.presentation .inspector,
+      body.presentation .canvas-bar {
+        display: none;
+      }
+
+      body.presentation .preview-stage {
+        min-height: 100vh;
+        padding: 48px;
+      }
+
+      @media (max-width: 900px) {
+        .lab {
+          grid-template-columns: 1fr;
+        }
+
+        .inspector {
+          position: static;
+          height: auto;
+          border-right: 0;
+          border-bottom: 1px solid #242a32;
+        }
+
+        .token-list {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .canvas-bar {
+          position: sticky;
+          top: 0;
+          z-index: 5;
+        }
+      }
+
+      @media (max-width: 620px) {
+        .token-list {
+          grid-template-columns: 1fr;
+        }
+
+        .canvas-bar {
+          align-items: flex-start;
+          flex-direction: column;
+        }
+
+        .viewport-picker {
+          width: 100%;
+        }
+
+        .preview-stage {
+          padding: 16px;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          /* biome-ignore lint/complexity/noImportantStyles: Reduced-motion overrides must win the cascade. */
+          scroll-behavior: auto !important;
+          /* biome-ignore lint/complexity/noImportantStyles: Reduced-motion overrides must win the cascade. */
+          transition-duration: 0.01ms !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="lab">
+      <aside class="inspector" aria-label="Design controls">
+        <p class="eyebrow">Editable prototype</p>
+        <h1>Blupost UI Lab</h1>
+        <p class="intro">
+          Electric blue against dark grey. Change the tokens, switch viewport and
+          density, or click any copy inside the terminal to rewrite it.
+        </p>
+
+        <section class="control-group">
+          <h2>Palette</h2>
+          <div class="token-list">
+            <div class="token">
+              <input id="accent-color" type="color" data-token="accent" value="#168bff" />
+              <label for="accent-color">Electric blue</label>
+              <input class="hex" data-hex="accent" value="#168BFF" maxlength="7" />
+            </div>
+            <div class="token">
+              <input id="canvas-color" type="color" data-token="canvas" value="#0b0e12" />
+              <label for="canvas-color">Canvas</label>
+              <input class="hex" data-hex="canvas" value="#0B0E12" maxlength="7" />
+            </div>
+            <div class="token">
+              <input id="panel-color" type="color" data-token="panel" value="#151a21" />
+              <label for="panel-color">Dark panel</label>
+              <input class="hex" data-hex="panel" value="#151A21" maxlength="7" />
+            </div>
+            <div class="token">
+              <input id="raised-color" type="color" data-token="raised" value="#1c232c" />
+              <label for="raised-color">Raised grey</label>
+              <input class="hex" data-hex="raised" value="#1C232C" maxlength="7" />
+            </div>
+            <div class="token">
+              <input id="text-color" type="color" data-token="text" value="#e8edf3" />
+              <label for="text-color">Primary text</label>
+              <input class="hex" data-hex="text" value="#E8EDF3" maxlength="7" />
+            </div>
+            <div class="token">
+              <input id="muted-color" type="color" data-token="muted" value="#7f8b99" />
+              <label for="muted-color">Muted text</label>
+              <input class="hex" data-hex="muted" value="#7F8B99" maxlength="7" />
+            </div>
+          </div>
+        </section>
+
+        <section class="control-group">
+          <h2>Density</h2>
+          <div class="segmented" data-choice="density">
+            <button type="button" data-value="tight" aria-pressed="false">Tight</button>
+            <button type="button" data-value="balanced" aria-pressed="true">Balanced</button>
+            <button type="button" data-value="airy" aria-pressed="false">Airy</button>
+          </div>
+        </section>
+
+        <section class="control-group">
+          <h2>Message treatment</h2>
+          <label class="switch-row">
+            <span>Subtle message surfaces</span>
+            <input id="message-surfaces" type="checkbox" checked />
+          </label>
+        </section>
+
+        <section class="control-group">
+          <h2>Share the direction</h2>
+          <div class="actions">
+            <button id="copy-brief" class="action" type="button">Copy spec</button>
+            <button id="reset" class="action" type="button">Reset</button>
+          </div>
+          <textarea id="brief" class="brief" readonly aria-label="Current design specification"></textarea>
+        </section>
+      </aside>
+
+      <section class="canvas">
+        <header class="canvas-bar">
+          <div class="canvas-title">
+            <strong>Conversation surface</strong>
+            <span>The editor chrome is not part of the product.</span>
+          </div>
+          <div class="segmented viewport-picker" data-choice="viewport">
+            <button type="button" data-value="wide" aria-pressed="true">Wide</button>
+            <button type="button" data-value="compact" aria-pressed="false">Compact</button>
+            <button type="button" data-value="tiny" aria-pressed="false">Tiny</button>
+          </div>
+        </header>
+
+        <div class="preview-stage">
+          <div id="preview-shell" class="preview-shell" data-viewport="wide">
+            <div id="terminal" class="terminal">
+              <svg class="brand-mark" viewBox="0 0 256 256" role="img" aria-label="Blupost">
+                <defs>
+                  <mask id="lab-logo-counter" maskUnits="userSpaceOnUse" x="0" y="0" width="256" height="256">
+                    <rect width="256" height="256" fill="white" />
+                    <path d="M119 105h39c21 0 34 14 34 37v20c0 23-13 37-34 37h-39c-21 0-35-14-35-37v-20c0-23 14-37 35-37Z" fill="black" />
+                  </mask>
+                </defs>
+                <g fill="currentColor" mask="url(#lab-logo-counter)">
+                  <path d="M58 26h10c9 0 16 7 16 16v50c16-13 37-20 61-20 48 0 79 31 79 79 0 47-32 79-82 79H58c-9 0-16-7-16-16V42c0-9 7-16 16-16Z" />
+                  <path d="M96 207c-14-2-26-8-35-18 5 19 2 36-12 52 20-10 38-14 58-12Z" />
+                </g>
+              </svg>
+              <aside class="sidebar" aria-label="Conversations">
+                <div class="sidebar-header">
+                  <div class="connection">
+                    <span class="connection-dot"></span>
+                    <span>connected</span>
+                  </div>
+                </div>
+                <div class="contacts">
+                  <div class="contact active">
+                    <div class="contact-line">
+                      <span class="alias" contenteditable="true" data-edit="contact-alice" spellcheck="false">alice</span>
+                    </div>
+                    <span class="preview" contenteditable="true" data-edit="preview-alice" spellcheck="false">Are you still coming?</span>
+                  </div>
+                  <div class="contact">
+                    <div class="contact-line">
+                      <span class="alias" contenteditable="true" data-edit="contact-mateo" spellcheck="false">mateo</span>
+                      <span class="unread">2</span>
+                    </div>
+                    <span class="preview" contenteditable="true" data-edit="preview-mateo" spellcheck="false">Dinner moved to eight.</span>
+                  </div>
+                  <div class="contact">
+                    <div class="contact-line">
+                      <span class="alias" contenteditable="true" data-edit="contact-casey" spellcheck="false">casey</span>
+                    </div>
+                    <span class="preview" contenteditable="true" data-edit="preview-casey" spellcheck="false">Perfect. Door is unlocked.</span>
+                  </div>
+                </div>
+                <div class="sidebar-action">
+                  <span class="plus">+</span>
+                  <span>contact</span>
+                </div>
+              </aside>
+
+              <section class="conversation" aria-label="Conversation with Alice">
+                <div class="compact-context">
+                  <span class="compact-person"><span class="back">‹</span><span contenteditable="true" data-edit="compact-alice" spellcheck="false">alice</span></span>
+                  <span class="compact-state"><span class="connection-dot"></span>connected</span>
+                </div>
+
+                <div class="transcript">
+                  <div class="message-group incoming">
+                    <div class="message" contenteditable="true" data-edit="message-1" spellcheck="false">Are you still coming?</div>
+                    <div class="message" contenteditable="true" data-edit="message-2" spellcheck="false">Perfect. Door is unlocked.</div>
+                  </div>
+                  <div class="message-group outgoing">
+                    <div class="message" contenteditable="true" data-edit="message-3" spellcheck="false">Yep — leaving in five.</div>
+                    <div class="message" contenteditable="true" data-edit="message-4" spellcheck="false">I’ll bring the adapter.</div>
+                    <div class="message-meta">✓</div>
+                  </div>
+                </div>
+
+                <div class="composer-wrap">
+                  <div class="composer">
+                    <div class="composer-copy" contenteditable="true" data-edit="composer" spellcheck="false">Write a message</div>
+                    <button class="send" type="button" tabindex="-1" aria-label="Send">↑</button>
+                  </div>
+                </div>
+              </section>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <div id="toast" class="toast" role="status">Copied</div>
+
+    <script>
+      const defaults = {
+        tokens: {
+          accent: "#168BFF",
+          canvas: "#0B0E12",
+          panel: "#151A21",
+          raised: "#1C232C",
+          text: "#E8EDF3",
+          muted: "#7F8B99"
+        },
+        density: "balanced",
+        viewport: "wide",
+        messageSurfaces: true,
+        copy: {}
+      };
+
+      const storageKey = "blupost-ui-lab-v1";
+      const previewShell = document.querySelector("#preview-shell");
+      const terminal = document.querySelector("#terminal");
+      const brief = document.querySelector("#brief");
+      const messageSurfaces = document.querySelector("#message-surfaces");
+      const toast = document.querySelector("#toast");
+      let state = structuredClone(defaults);
+      let toastTimer;
+
+      function validHex(value) {
+        return /^#[0-9a-f]{6}$/i.test(value);
+      }
+
+      function loadState() {
+        try {
+          const stored = JSON.parse(localStorage.getItem(storageKey) || "null");
+          if (!stored) return;
+          state = {
+            ...structuredClone(defaults),
+            ...stored,
+            tokens: {...defaults.tokens, ...(stored.tokens || {})},
+            copy: stored.copy || {}
+          };
+        } catch {
+          state = structuredClone(defaults);
+        }
+      }
+
+      function saveState() {
+        localStorage.setItem(storageKey, JSON.stringify(state));
+      }
+
+      function selectChoice(name, value) {
+        document.querySelectorAll(`[data-choice="${name}"] button`).forEach(button => {
+          button.setAttribute("aria-pressed", String(button.dataset.value === value));
+        });
+      }
+
+      function updateBrief() {
+        brief.value = JSON.stringify(
+          {
+            direction: "electric blue + layered dark grey",
+            tokens: state.tokens,
+            density: state.density,
+            viewport: state.viewport,
+            messageSurfaces: state.messageSurfaces,
+            rules: [
+              "recipient appears once",
+              "generic composer",
+              "blue is reserved for selection, outgoing state, and action",
+              "dark grey separates navigation, messages, and input",
+              "no masthead, TO field, logo, or shortcut wallpaper"
+            ],
+            copy: state.copy
+          },
+          null,
+          2
+        );
+      }
+
+      function render() {
+        for (const [token, value] of Object.entries(state.tokens)) {
+          document.documentElement.style.setProperty(`--${token}`, value);
+          const color = document.querySelector(`[data-token="${token}"]`);
+          const hex = document.querySelector(`[data-hex="${token}"]`);
+          if (color) color.value = value.toLowerCase();
+          if (hex) hex.value = value.toUpperCase();
+        }
+        document.documentElement.dataset.density = state.density;
+        previewShell.dataset.viewport = state.viewport;
+        terminal.classList.toggle("bare-messages", !state.messageSurfaces);
+        messageSurfaces.checked = state.messageSurfaces;
+        selectChoice("density", state.density);
+        selectChoice("viewport", state.viewport);
+        for (const editable of document.querySelectorAll("[data-edit]")) {
+          const saved = state.copy[editable.dataset.edit];
+          if (typeof saved === "string" && editable.textContent !== saved) {
+            editable.textContent = saved;
+          }
+        }
+        updateBrief();
+      }
+
+      function announce(message) {
+        toast.textContent = message;
+        toast.classList.add("visible");
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => toast.classList.remove("visible"), 1300);
+      }
+
+      loadState();
+      const query = new URLSearchParams(location.search);
+      if (["wide", "compact", "tiny"].includes(query.get("viewport"))) {
+        state.viewport = query.get("viewport");
+      }
+      if (["tight", "balanced", "airy"].includes(query.get("density"))) {
+        state.density = query.get("density");
+      }
+      if (query.get("surfaces") === "bare") {
+        state.messageSurfaces = false;
+      }
+      if (query.get("presentation") === "1") {
+        document.body.classList.add("presentation");
+      }
+      render();
+
+      document.querySelectorAll("[data-token]").forEach(input => {
+        input.addEventListener("input", () => {
+          state.tokens[input.dataset.token] = input.value.toUpperCase();
+          saveState();
+          render();
+        });
+      });
+
+      document.querySelectorAll("[data-hex]").forEach(input => {
+        input.addEventListener("change", () => {
+          const value = input.value.startsWith("#") ? input.value : `#${input.value}`;
+          if (!validHex(value)) {
+            render();
+            return;
+          }
+          state.tokens[input.dataset.hex] = value.toUpperCase();
+          saveState();
+          render();
+        });
+      });
+
+      document.querySelectorAll("[data-choice]").forEach(group => {
+        group.addEventListener("click", event => {
+          const button = event.target.closest("button[data-value]");
+          if (!button) return;
+          const choice = group.dataset.choice;
+          state[choice] = button.dataset.value;
+          saveState();
+          render();
+        });
+      });
+
+      messageSurfaces.addEventListener("change", () => {
+        state.messageSurfaces = messageSurfaces.checked;
+        saveState();
+        render();
+      });
+
+      document.querySelectorAll("[data-edit]").forEach(editable => {
+        editable.addEventListener("paste", event => {
+          event.preventDefault();
+          const text = event.clipboardData.getData("text/plain").replaceAll("\n", " ");
+          document.execCommand("insertText", false, text);
+        });
+        editable.addEventListener("input", () => {
+          state.copy[editable.dataset.edit] = editable.textContent;
+          saveState();
+          updateBrief();
+        });
+      });
+
+      document.querySelector("#copy-brief").addEventListener("click", async () => {
+        try {
+          await navigator.clipboard.writeText(brief.value);
+        } catch {
+          brief.focus();
+          brief.select();
+          document.execCommand("copy");
+        }
+        announce("Design spec copied");
+      });
+
+      document.querySelector("#reset").addEventListener("click", () => {
+        state = structuredClone(defaults);
+        localStorage.removeItem(storageKey);
+        for (const editable of document.querySelectorAll("[data-edit]")) {
+          editable.textContent = editable.defaultTextContent || editable.textContent;
+        }
+        location.reload();
+      });
+    </script>
+  </body>
+</html>

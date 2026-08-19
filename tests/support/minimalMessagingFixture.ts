@@ -7,7 +7,7 @@ export const fixtureContacts = {
 } as const;
 
 /** Rich, deterministic, and intentionally synthetic visual-review state. */
-export function electricQuietFixture(): EngineSnapshot {
+export function minimalMessagingFixture(): EngineSnapshot {
   return {
     connection: {
       state: "connected",
@@ -21,7 +21,7 @@ export function electricQuietFixture(): EngineSnapshot {
     ],
     session: {
       active_thread: fixtureContacts.alice,
-      total_messages: 7,
+      total_messages: 6,
       threads: [
         {
           participant: fixtureContacts.alice,
@@ -57,15 +57,7 @@ export function electricQuietFixture(): EngineSnapshot {
               participant: fixtureContacts.alice,
               body: "I’ll bring the adapter.",
               direction: "outgoing",
-              state: "sending",
-              unread: false
-            },
-            {
-              id: 5,
-              participant: fixtureContacts.alice,
-              body: "If that changed, check the phone.",
-              direction: "outgoing",
-              state: "unknown",
+              state: "sent",
               unread: false
             }
           ]
@@ -76,7 +68,7 @@ export function electricQuietFixture(): EngineSnapshot {
           draft: "Ask about dessert",
           messages: [
             {
-              id: 6,
+              id: 5,
               participant: fixtureContacts.mateo,
               body: "Dinner moved to eight.",
               direction: "incoming",
@@ -91,9 +83,9 @@ export function electricQuietFixture(): EngineSnapshot {
           draft: "",
           messages: [
             {
-              id: 7,
+              id: 6,
               participant: fixtureContacts.casey,
-              body: "The fixture link is https://example.com/notes.",
+              body: "Perfect. Door is unlocked.",
               direction: "incoming",
               state: "received",
               unread: false
