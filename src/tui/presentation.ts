@@ -4,7 +4,6 @@ export type PresentationTone = "muted" | "success" | "warning" | "error";
 
 export interface ConnectionPresentation {
   label: string;
-  compactLabel: string;
   tone: PresentationTone;
   isConnected: boolean;
   isConnecting: boolean;
@@ -14,10 +13,10 @@ export interface ConnectionPresentation {
 export interface ConversationPresentation {
   number: string;
   label: string;
+  preview: string;
   unread: number;
   hasDraft: boolean;
   draft: string;
-  preview: string | null;
 }
 
 export interface MessagePresentation {
@@ -30,7 +29,6 @@ export interface MessagePresentation {
 
 export interface MessageGroupPresentation {
   direction: "incoming" | "outgoing";
-  label: string;
   messages: MessagePresentation[];
 }
 
@@ -42,18 +40,13 @@ export interface BlupostPresentation {
   connection: ConnectionPresentation;
   conversations: ConversationPresentation[];
   activeConversation: ActiveConversationPresentation | null;
-  sessionMessageCount: number;
 }
 
-function presentConnection(
-  snapshot: EngineSnapshot,
-  spinner: string
-): ConnectionPresentation {
+function presentConnection(snapshot: EngineSnapshot): ConnectionPresentation {
   switch (snapshot.connection.state) {
     case "connected":
       return {
-        label: `● Connected · ${snapshot.connection.phone_name}`,
-        compactLabel: "● Connected",
+        label: "connected",
         tone: "success",
         isConnected: true,
         isConnecting: false,
@@ -61,8 +54,7 @@ function presentConnection(
       };
     case "connecting":
       return {
-        label: `${spinner} Connecting…`,
-        compactLabel: `${spinner} Connecting…`,
+        label: "connecting…",
         tone: "warning",
         isConnected: false,
         isConnecting: true,
@@ -70,8 +62,7 @@ function presentConnection(
       };
     case "failed":
       return {
-        label: "! Connection failed",
-        compactLabel: "! Failed",
+        label: "connection failed",
         tone: "error",
         isConnected: false,
         isConnecting: false,
@@ -79,8 +70,7 @@ function presentConnection(
       };
     case "disconnected":
       return {
-        label: "○ Disconnected",
-        compactLabel: "○ Disconnected",
+        label: "offline",
         tone: "warning",
         isConnected: false,
         isConnecting: false,
@@ -89,10 +79,7 @@ function presentConnection(
   }
 }
 
-function presentOutcome(
-  message: SessionMessage,
-  sendingSpinner: string
-): {
+function presentOutcome(message: SessionMessage): {
   outcome: string | null;
   outcomeTone: PresentationTone;
 } {
@@ -100,55 +87,42 @@ function presentOutcome(
     case "received":
       return {outcome: null, outcomeTone: "muted"};
     case "sending":
-      return {outcome: `${sendingSpinner} Sending…`, outcomeTone: "muted"};
+      return {outcome: "sending…", outcomeTone: "muted"};
     case "sent":
-      return {outcome: "✓ Sent", outcomeTone: "muted"};
+      return {outcome: "✓", outcomeTone: "muted"};
     case "failed":
-      return {outcome: "! Not sent", outcomeTone: "error"};
+      return {outcome: "not sent", outcomeTone: "error"};
     case "unknown":
       return {
-        outcome: "? Check your phone — outcome unknown",
+        outcome: "Check your phone — outcome unknown",
         outcomeTone: "warning"
       };
   }
 }
 
-function presentMessage(
-  message: SessionMessage,
-  sendingSpinner: string
-): MessagePresentation {
+function presentMessage(message: SessionMessage): MessagePresentation {
   return {
     id: message.id,
     body: message.body,
     state: message.state,
-    ...presentOutcome(message, sendingSpinner)
+    ...presentOutcome(message)
   };
 }
 
-function groupMessages(
-  messages: SessionMessage[],
-  incomingLabel: string,
-  sendingSpinner: string
-): MessageGroupPresentation[] {
+function groupMessages(messages: SessionMessage[]): MessageGroupPresentation[] {
   const groups: MessageGroupPresentation[] = [];
   for (const message of messages) {
     const latest = groups.at(-1);
     if (!latest || latest.direction !== message.direction) {
       groups.push({
         direction: message.direction,
-        label: message.direction === "outgoing" ? "You" : incomingLabel,
-        messages: [presentMessage(message, sendingSpinner)]
+        messages: [presentMessage(message)]
       });
       continue;
     }
-    latest.messages.push(presentMessage(message, sendingSpinner));
+    latest.messages.push(presentMessage(message));
   }
   return groups;
-}
-
-function previewOf(messages: SessionMessage[]): string | null {
-  const body = messages.at(-1)?.body.replace(/\s+/gu, " ").trim();
-  return body ? body : null;
 }
 
 /**
@@ -156,9 +130,7 @@ function previewOf(messages: SessionMessage[]): string | null {
  * Contact ordering, message grouping, and user-facing state language stay local here.
  */
 export function createBlupostPresentation(
-  snapshot: EngineSnapshot,
-  connectionSpinner: string,
-  sendingSpinner = "◌"
+  snapshot: EngineSnapshot
 ): BlupostPresentation {
   const labels = new Map<string, string>();
   for (const contact of snapshot.contacts) labels.set(contact.number, contact.alias);
@@ -172,13 +144,14 @@ export function createBlupostPresentation(
     const thread = snapshot.session.threads.find(
       candidate => candidate.participant === number
     );
+    const latestMessage = thread?.messages.at(-1);
     return {
       number,
       label,
+      preview: latestMessage?.body ?? "",
       unread: thread?.unread ?? 0,
       hasDraft: Boolean(thread?.draft.trim()),
-      draft: thread?.draft ?? "",
-      preview: previewOf(thread?.messages ?? [])
+      draft: thread?.draft ?? ""
     } satisfies ConversationPresentation;
   });
 
@@ -193,18 +166,13 @@ export function createBlupostPresentation(
     activeNumber && activeBase
       ? {
           ...activeBase,
-          groups: groupMessages(
-            activeThread?.messages ?? [],
-            activeBase.label,
-            sendingSpinner
-          )
+          groups: groupMessages(activeThread?.messages ?? [])
         }
       : null;
 
   return {
-    connection: presentConnection(snapshot, connectionSpinner),
+    connection: presentConnection(snapshot),
     conversations,
-    activeConversation,
-    sessionMessageCount: snapshot.session.total_messages
+    activeConversation
   };
 }

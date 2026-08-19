@@ -2,31 +2,31 @@ import {expect, test} from "bun:test";
 import {computeBlupostLayout} from "../../src/tui/layout.js";
 
 test.each([
-  [120, 34, "roomy", true, true, 5],
-  [90, 24, "standard", true, true, 4],
-  [72, 20, "standard", true, false, 3],
-  [60, 18, "compact", false, false, 3],
-  [48, 14, "compact", false, false, 2],
-  [40, 12, "tiny", false, false, 1]
-] as const)("%ix%i derives the %s capability tier", (width, height, tier, showSidebar, showPreview, composerMaxRows) => {
+  [120, 34, "roomy", true, 4],
+  [90, 24, "standard", true, 3],
+  [72, 20, "standard", true, 3],
+  [60, 18, "compact", false, 3],
+  [48, 14, "compact", false, 2],
+  [40, 12, "tiny", false, 2]
+] as const)("%ix%i derives the %s capability tier", (width, height, tier, showSidebar, composerMaxRows) => {
   const layout = computeBlupostLayout(width, height);
 
   expect(layout.tier).toBe(tier);
   expect(layout.showSidebar).toBe(showSidebar);
-  expect(layout.showThreadPreview).toBe(showPreview);
+  expect(layout.showConversationPreviews).toBe(tier !== "tiny");
+  expect(layout.frameComposer).toBe(tier !== "tiny");
   expect(layout.composerMaxRows).toBe(composerMaxRows);
-  expect(layout.sidebarWidth).toBeGreaterThanOrEqual(22);
-  expect(layout.sidebarWidth).toBeLessThanOrEqual(34);
+  expect(layout.sidebarWidth).toBeGreaterThanOrEqual(21);
+  expect(layout.sidebarWidth).toBeLessThanOrEqual(30);
 });
 
-test("tiny viewports keep only essential chrome", () => {
+test("tiny viewports reserve one context row and one quiet composer", () => {
   const layout = computeBlupostLayout(40, 12);
 
-  expect(layout.showPhoneName).toBe(false);
-  expect(layout.showSecondaryHints).toBe(false);
-  expect(layout.showSessionCount).toBe(false);
-  expect(layout.headerHeight).toBe(2);
-  expect(layout.footerHeight).toBe(1);
-  expect(layout.showLargeBrand).toBe(false);
-  expect(layout.showComposerLabel).toBe(true);
+  expect(layout.showSidebar).toBe(false);
+  expect(layout.compactHeaderHeight).toBe(1);
+  expect(layout.horizontalPadding).toBe(1);
+  expect(layout.transcriptPadding).toBe(1);
+  expect(layout.showConversationPreviews).toBe(false);
+  expect(layout.frameComposer).toBe(false);
 });

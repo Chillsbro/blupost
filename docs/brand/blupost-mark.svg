@@ -1,17 +1,13 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title description">
   <title id="title">Blupost trailing b mark</title>
-  <desc id="description">A bold lowercase b with a speech tail trailing from its outer bowl.</desc>
+  <desc id="description">A lowercase b with a speech tail, rendered in electric blue without a background.</desc>
   <defs>
-    <linearGradient id="signal" x1="42" y1="128" x2="224" y2="128" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#57D6D1"/>
-      <stop offset="1" stop-color="#65A9FF"/>
-    </linearGradient>
     <mask id="counter" maskUnits="userSpaceOnUse" x="0" y="0" width="256" height="256">
       <rect width="256" height="256" fill="#fff"/>
       <path d="M119 105h39c21 0 34 14 34 37v20c0 23-13 37-34 37h-39c-21 0-35-14-35-37v-20c0-23 14-37 35-37Z" fill="#000"/>
     </mask>
   </defs>
-  <g fill="url(#signal)" mask="url(#counter)">
+  <g fill="#168BFF" mask="url(#counter)">
     <path d="M58 26h10c9 0 16 7 16 16v50c16-13 37-20 61-20 48 0 79 31 79 79 0 47-32 79-82 79H58c-9 0-16-7-16-16V42c0-9 7-16 16-16Z"/>
     <path d="M96 207c-14-2-26-8-35-18 5 19 2 36-12 52 20-10 38-14 58-12Z"/>
   </g>

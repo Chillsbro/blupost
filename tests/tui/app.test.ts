@@ -3,19 +3,17 @@ import {
   type BaseRenderable,
   type BoxRenderable,
   CliRenderEvents,
-  type ImageRenderable,
   type ScrollBoxRenderable,
   type TextareaRenderable,
   TextRenderable
 } from "@opentui/core";
-import {createTestRenderer} from "@opentui/core/testing";
+import {createTestRenderer, setRendererCapabilities} from "@opentui/core/testing";
 import type {EngineSnapshot} from "../../src/protocol.js";
 import {createBlupostTui} from "../../src/tui/index.js";
-import {MotionController} from "../../src/tui/motion.js";
 import {
-  electricQuietFixture,
-  fixtureContacts
-} from "../support/electricQuietFixture.js";
+  fixtureContacts,
+  minimalMessagingFixture
+} from "../support/minimalMessagingFixture.js";
 import {RecordingEngineClient} from "../support/recordingEngineClient.js";
 
 function snapshot(activeThread: string | null = null): EngineSnapshot {
@@ -55,18 +53,15 @@ function snapshot(activeThread: string | null = null): EngineSnapshot {
 async function setupApp(
   initial = snapshot(),
   copyText?: (text: string) => Promise<"copied" | "terminal-attempted">,
-  viewport: {width: number; height: number} = {width: 96, height: 24},
-  motionController?: MotionController
+  viewport: {width: number; height: number} = {width: 96, height: 24}
 ) {
   const setup = await createTestRenderer(viewport);
   const engine = new RecordingEngineClient(initial);
   const app = createBlupostTui({
     renderer: setup.renderer,
     engine,
-    interactive: false,
     autoConnect: false,
-    copyText,
-    motionController
+    copyText
   });
   await app.start();
   await setup.renderOnce();
@@ -85,21 +80,18 @@ function findText(
   return undefined;
 }
 
-test("renders the real mark, contacts, and session privacy state", async () => {
+test("renders only unique idle state at roomy widths", async () => {
   const {setup, app} = await setupApp();
   try {
     const frame = setup.captureCharFrame();
-    const brand = setup.renderer.root.findDescendantById(
-      "brand-mark"
-    ) as ImageRenderable;
-    expect(brand).toBeDefined();
-    expect({width: brand.width, height: brand.height}).toEqual({width: 6, height: 3});
-    expect(frame).toMatch(/[█▐▜]/u);
-    expect(frame.toLocaleLowerCase()).not.toContain("blupost");
     expect(frame).toContain("alice");
-    expect(frame).toContain("SESSION ONLY");
-    expect(frame).toContain("MESSAGES");
-    expect(frame).not.toContain("◆");
+    expect(frame).toContain("+ contact");
+    expect(frame).toContain("connected");
+    expect(frame.toLocaleLowerCase()).not.toContain("blupost");
+    expect(frame).not.toContain("MESSAGES");
+    expect(frame).not.toContain("SESSION");
+    expect(frame).not.toContain("Ctrl+P");
+    expect(frame).not.toContain("TO ");
   } finally {
     await app.stop();
   }
@@ -111,12 +103,29 @@ test("empty-contact guidance keeps one visible local action", async () => {
   const {setup, app} = await setupApp(initial);
   try {
     const frame = setup.captureCharFrame();
-    expect(frame).toContain("No conversations yet");
-    expect(frame).toContain("＋ Add contact");
-    expect(frame).toContain("Add someone to start a");
-    expect(frame).toContain("session-only conversation.");
+    expect(frame).toContain("No contacts.");
+    expect(frame).toContain("+ contact");
+    expect(frame).not.toContain("Select a contact.");
     expect(frame).not.toContain("contacts add");
     expect(frame).not.toContain("~/.config");
+  } finally {
+    await app.stop();
+  }
+});
+
+test("a new conversation needs no recipient or session explanation", async () => {
+  const active = "+13125550123";
+  const initial = snapshot(active);
+  initial.session.total_messages = 0;
+  initial.session.threads[0]!.messages = [];
+  const {setup, app} = await setupApp(initial);
+  try {
+    const frame = setup.captureCharFrame();
+    expect(frame).toContain("No messages yet.");
+    expect(frame).toContain("Write a message");
+    expect(frame.match(/alice/gu)).toHaveLength(1);
+    expect(frame.toLocaleLowerCase()).not.toContain("blupost");
+    expect(frame).not.toContain("TO ");
   } finally {
     await app.stop();
   }
@@ -136,12 +145,12 @@ test("adds a contact from the sidebar form", async () => {
     await setup.mockMouse.click(addButton!.screenX + 2, addButton!.screenY);
     await setup.renderOnce();
     const form = setup.captureCharFrame();
-    expect(form).toContain("Add contact");
+    expect(form).toContain("New contact");
     expect(form).toContain("Alias");
     expect(form).toContain("Phone number");
-    expect(form).toContain("Save contact");
-    expect(form).toContain("Cancel");
-    expect(form).toContain("Saved locally in");
+    expect(form).toContain("save");
+    expect(form).toContain("cancel");
+    expect(form).toContain("Stored locally.");
 
     await setup.mockInput.typeText("fixture_friend");
     setup.mockInput.pressEnter();
@@ -204,13 +213,13 @@ test("opens and cancels the contact form from the keyboard", async () => {
     await new Promise<void>(resolveWait => setTimeout(resolveWait, 25));
     setup.mockInput.pressKey("a");
     await setup.renderOnce();
-    const form = setup.renderer.root.findDescendantById("contact-form");
-    expect(form?.visible).toBe(true);
+    const view = setup.renderer.root.findDescendantById("contact-view");
+    expect(view?.visible).toBe(true);
 
     setup.mockInput.pressEscape();
     await new Promise<void>(resolveWait => setTimeout(resolveWait, 25));
     await setup.renderOnce();
-    expect(form?.visible).toBe(false);
+    expect(view?.visible).toBe(false);
     expect(engine.addedContacts).toEqual([]);
   } finally {
     await app.stop();
@@ -359,6 +368,7 @@ test("clicking SEND submits the current composer", async () => {
   const {setup, engine, app} = await setupApp(snapshot(active));
   try {
     await setup.mockInput.typeText("clicked send");
+    await setup.renderOnce();
     const sendButton = setup.renderer.root.findDescendantById("send-button");
     expect(sendButton).toBeDefined();
     await setup.mockMouse.click(sendButton!.screenX + 2, sendButton!.screenY);
@@ -369,13 +379,27 @@ test("clicking SEND submits the current composer", async () => {
   }
 });
 
-test("non-interactive startup never schedules a recursive connection pulse", async () => {
+test("the visible send action cannot send an empty composer", async () => {
+  const active = "+13125550123";
+  const {setup, engine, app} = await setupApp(snapshot(active));
+  try {
+    const sendButton = setup.renderer.root.findDescendantById("send-button");
+    expect(sendButton?.visible).toBe(true);
+    await setup.mockMouse.click(sendButton!.screenX + 1, sendButton!.screenY);
+    await setup.renderOnce();
+    expect(engine.sends).toEqual([]);
+  } finally {
+    await app.stop();
+  }
+});
+
+test("startup requests exactly one initial connection", async () => {
   const setup = await createTestRenderer({width: 80, height: 24});
   const engine = new RecordingEngineClient(snapshot());
   const app = createBlupostTui({
     renderer: setup.renderer,
     engine,
-    interactive: false
+    autoConnect: true
   });
   try {
     await app.start();
@@ -440,13 +464,12 @@ test("keeps drafts scoped to their thread", async () => {
   }
 });
 
-test("automatic non-interactive mode never slides the transcript", async () => {
+test("clicking the transcript does not shift its layout", async () => {
   const setup = await createTestRenderer({width: 96, height: 24});
   const engine = new RecordingEngineClient(snapshot());
   const app = createBlupostTui({
     renderer: setup.renderer,
     engine,
-    interactive: false,
     autoConnect: false
   });
   try {
@@ -461,7 +484,7 @@ test("automatic non-interactive mode never slides the transcript", async () => {
   }
 });
 
-test("renders the Electric Quiet hierarchy at roomy widths", async () => {
+test("roomy layout keeps only conversation state and the active task", async () => {
   const active = "+13125550123";
   const {setup, app} = await setupApp(snapshot(active), undefined, {
     width: 120,
@@ -469,14 +492,17 @@ test("renders the Electric Quiet hierarchy at roomy widths", async () => {
   });
   try {
     const frame = setup.captureCharFrame();
-    expect(frame).toContain("MESSAGES");
-    expect(frame).toContain("Terminal texting is alive.");
-    expect(frame).toContain("Message alice");
-    expect(frame).toContain("TO  alice");
-    expect(frame).toContain("SESSION ONLY");
     expect(frame).toContain("▌ alice");
-    expect(frame).not.toContain("╭");
-    expect(frame).not.toContain("◆");
+    expect(frame).toContain("Terminal texting is alive.");
+    expect(frame).toContain("Write a message");
+    expect(frame).toContain("+ contact");
+    expect(frame).toContain("connected");
+    expect(frame.match(/alice/gu)).toHaveLength(1);
+    expect(frame).not.toContain("MESSAGES");
+    expect(frame).not.toContain("SESSION");
+    expect(frame).not.toContain("TO ");
+    expect(frame).not.toContain("Message alice");
+    expect(frame).not.toContain("You");
   } finally {
     await app.stop();
   }
@@ -492,21 +518,25 @@ test("compact chat is one pane and Escape returns through the navigation stack",
     await setup.mockInput.typeText("compact draft");
     await setup.renderOnce();
     const composerFrame = setup.captureCharFrame();
-    expect(composerFrame).toContain("‹ Conversations");
+    expect(composerFrame).toContain("‹ alice");
     expect(composerFrame).toContain("compact draft");
-    expect(composerFrame).not.toContain("＋ Add contact");
+    expect(composerFrame).not.toContain("+ contact");
 
     setup.mockInput.pressEscape();
     await new Promise<void>(resolveWait => setTimeout(resolveWait, 25));
     await setup.renderOnce();
-    expect(setup.captureCharFrame()).toContain("READ");
+    expect(setup.captureCharFrame()).toContain("‹ alice");
 
     setup.mockInput.pressEscape();
     await new Promise<void>(resolveWait => setTimeout(resolveWait, 25));
     await setup.renderOnce();
     const listFrame = setup.captureCharFrame();
-    expect(listFrame).toContain("＋ Add contact");
-    expect(listFrame).not.toContain("Terminal texting is alive.");
+    expect(listFrame).toContain("contacts");
+    expect(listFrame).toContain("+ contact");
+    expect(listFrame.match(/Terminal texting is alive\./gu)).toHaveLength(1);
+    expect(setup.renderer.root.findDescendantById("conversation-detail")?.visible).toBe(
+      false
+    );
     expect(engine.draftUpdates).toContainEqual({
       recipient: active,
       body: "compact draft"
@@ -549,15 +579,17 @@ test("contextual Help explains navigation and session limits", async () => {
     const completeHelp = findText(setup.renderer.root, text =>
       text.plainText.includes("Ctrl+C")
     );
-    expect(help).toContain("HELP");
-    expect(help).toContain("Conversation list");
-    expect(help).toContain("Messages are session-only");
+    expect(help).toContain("Help");
+    expect(help).toContain("select");
+    expect(help).toContain("open");
+    expect(help).toContain("Messages and drafts last only while Blupost is open.");
+    expect(help).toContain("Offline sends are never queued or retried.");
     expect(completeHelp?.plainText).toContain("Ctrl+C");
 
     setup.mockInput.pressEscape();
     await new Promise<void>(resolveWait => setTimeout(resolveWait, 25));
     await setup.renderOnce();
-    expect(setup.captureCharFrame()).toContain("MESSAGES");
+    expect(setup.captureCharFrame()).toContain("contacts");
   } finally {
     await app.stop();
   }
@@ -574,9 +606,9 @@ test("tiny viewport keeps one usable pane with no overflow", async () => {
     const lines = frame.split("\n").filter((_, index, all) => {
       return index < all.length - 1 || all[index] !== "";
     });
-    expect(frame).toContain("‹ Back");
+    expect(frame).toContain("‹ alice");
     expect(frame).toContain("alice");
-    expect(frame).not.toContain("＋ Add contact");
+    expect(frame).not.toContain("+ contact");
     expect(lines).toHaveLength(12);
     expect(lines.every(line => line.length <= 40)).toBe(true);
   } finally {
@@ -595,12 +627,11 @@ test("tiny Add Contact keeps both fields and the primary action reachable", asyn
     setup.mockInput.pressKey("a");
     await setup.renderOnce();
     const frame = setup.captureCharFrame();
-    expect(frame).toContain("Add contact");
+    expect(frame).toContain("New contact");
     expect(frame).toContain("Alias");
     expect(frame).toContain("Phone number");
-    expect(frame).toContain("Save contact");
-    expect(frame).toContain("Cancel");
-    expect(frame).toContain("CONTACT");
+    expect(frame).toContain("save");
+    expect(frame).toContain("cancel");
   } finally {
     await app.stop();
   }
@@ -617,7 +648,7 @@ test("resize preserves the active draft while switching to compact navigation", 
     setup.resize(60, 18);
     await setup.renderOnce();
     const frame = setup.captureCharFrame();
-    expect(frame).toContain("‹ Conversations");
+    expect(frame).toContain("‹ alice");
     expect(frame).toContain("survives resize");
   } finally {
     await app.stop();
@@ -642,10 +673,10 @@ test("message bodies and truthful outcomes render as separate selectable text", 
       text => text.plainText === "Outcome stays separate"
     );
     const outcome = findText(setup.renderer.root, text =>
-      text.plainText.startsWith("? Check your phone")
+      text.plainText.startsWith("Check your phone")
     );
     expect(body).toBeDefined();
-    expect(outcome?.plainText).toBe("? Check your phone — outcome unknown");
+    expect(outcome?.plainText).toBe("Check your phone — outcome unknown");
   } finally {
     await app.stop();
   }
@@ -690,12 +721,12 @@ test("new incoming messages do not yank a transcript being read", async () => {
     engine.emitSnapshot(updated);
     await setup.renderOnce();
 
-    expect(setup.captureCharFrame()).toContain("↓ 1 new message");
+    expect(setup.captureCharFrame()).toContain("↓ 1 new");
     expect(transcript.scrollTop).toBeLessThanOrEqual(priorScrollTop);
 
     setup.mockInput.pressKey("END");
     await setup.renderOnce();
-    expect(setup.captureCharFrame()).not.toContain("↓ 1 new message");
+    expect(setup.captureCharFrame()).not.toContain("↓ 1 new");
   } finally {
     await app.stop();
   }
@@ -715,35 +746,37 @@ test("disconnected composer preserves edits and explains that nothing queues", a
     ) as TextareaRenderable;
     expect(engine.sends).toEqual([]);
     expect(composer.plainText).toBe("keep offline");
-    expect(setup.captureCharFrame()).toContain("Draft stays here · nothing will queue");
+    expect(setup.captureCharFrame()).toContain(
+      "Offline — draft only; nothing will queue."
+    );
   } finally {
     await app.stop();
   }
 });
 
 test.each([
-  [120, 34, 6, 3],
-  [80, 24, 6, 3],
-  [60, 18, 4, 2],
-  [40, 12, 4, 2]
-] as const)("%ix%i keeps the asset-derived mark and bounded frame", async (width, height, brandWidth, brandHeight) => {
-  const {setup, app} = await setupApp(electricQuietFixture(), undefined, {
+  [120, 34],
+  [80, 24],
+  [60, 18],
+  [40, 12]
+] as const)("%ix%i keeps one identity, one connection state, and a bounded frame", async (width, height) => {
+  const {setup, app} = await setupApp(minimalMessagingFixture(), undefined, {
     width,
     height
   });
   try {
     const frame = setup.captureCharFrame();
-    const brand = setup.renderer.root.findDescendantById(
-      "brand-mark"
-    ) as ImageRenderable;
     const lines = frame.split("\n").slice(0, height);
 
-    expect({width: brand.width, height: brand.height}).toEqual({
-      width: brandWidth,
-      height: brandHeight
-    });
-    expect(frame).toMatch(/[█▐▜]/u);
+    expect(frame.match(/alice/gu)).toHaveLength(1);
+    expect(frame.match(/connected/gu)).toHaveLength(1);
     expect(frame.toLocaleLowerCase()).not.toContain("blupost");
+    expect(frame).not.toContain("TO ");
+    expect(frame).not.toContain("Message alice");
+    expect(frame).not.toContain("SESSION");
+    expect(frame).not.toContain("MESSAGES");
+    expect(frame).not.toContain("You");
+    expect(frame).toContain("Write a message");
     expect(lines).toHaveLength(height);
     expect(lines.every(line => line.length <= width)).toBe(true);
   } finally {
@@ -752,7 +785,7 @@ test.each([
 });
 
 test("Ctrl+P preserves a composer draft through filtering, help, and Escape", async () => {
-  const {setup, app} = await setupApp(electricQuietFixture());
+  const {setup, app} = await setupApp(minimalMessagingFixture());
   try {
     await setup.mockInput.typeText("palette draft");
     setup.mockInput.pressKey("p", {ctrl: true});
@@ -761,13 +794,13 @@ test("Ctrl+P preserves a composer draft through filtering, help, and Escape", as
     const composer = setup.renderer.root.findDescendantById(
       "composer"
     ) as TextareaRenderable;
-    expect(setup.captureCharFrame()).toContain("COMMANDS");
+    expect(setup.captureCharFrame()).toContain("Search");
     expect(composer.plainText).toBe("palette draft");
 
     setup.mockInput.pressEscape();
     await new Promise<void>(resolveWait => setTimeout(resolveWait, 25));
     await setup.renderOnce();
-    expect(setup.captureCharFrame()).toContain("WRITE");
+    expect(setup.captureCharFrame()).toContain("palette draft");
     expect(composer.plainText).toBe("palette draft");
 
     setup.mockInput.pressKey("p", {ctrl: true});
@@ -776,7 +809,7 @@ test("Ctrl+P preserves a composer draft through filtering, help, and Escape", as
     expect(setup.captureCharFrame()).toContain("Open help");
     setup.mockInput.pressEnter();
     await setup.renderOnce();
-    expect(setup.captureCharFrame()).toContain("▌ HELP");
+    expect(setup.captureCharFrame()).toContain("Help");
 
     setup.mockInput.pressEscape();
     await new Promise<void>(resolveWait => setTimeout(resolveWait, 25));
@@ -788,7 +821,7 @@ test("Ctrl+P preserves a composer draft through filtering, help, and Escape", as
 });
 
 test("the command palette activates add, reconnect, help, and conversation entries", async () => {
-  const initial = electricQuietFixture();
+  const initial = minimalMessagingFixture();
   const {setup, engine, app} = await setupApp(initial);
   try {
     setup.mockInput.pressKey("p", {ctrl: true});
@@ -797,7 +830,7 @@ test("the command palette activates add, reconnect, help, and conversation entri
     expect(addRow).toBeDefined();
     await setup.mockMouse.click(addRow!.screenX + 2, addRow!.screenY);
     await setup.renderOnce();
-    expect(setup.renderer.root.findDescendantById("contact-form")?.visible).toBe(true);
+    expect(setup.renderer.root.findDescendantById("contact-view")?.visible).toBe(true);
     setup.mockInput.pressEscape();
     await new Promise<void>(resolveWait => setTimeout(resolveWait, 25));
     await setup.renderOnce();
@@ -808,7 +841,7 @@ test("the command palette activates add, reconnect, help, and conversation entri
     setup.mockInput.pressKey("p", {ctrl: true});
     setup.mockInput.pressArrow("down");
     await setup.renderOnce();
-    expect(setup.captureCharFrame()).toContain("▌ Reconnect");
+    expect(setup.captureCharFrame()).toContain("› Reconnect");
     expect(setup.renderer.currentFocusedRenderable?.id).toBe("command-palette-search");
     setup.mockInput.pressEnter();
     await setup.renderOnce();
@@ -819,7 +852,7 @@ test("the command palette activates add, reconnect, help, and conversation entri
     await setup.mockInput.typeText("help");
     setup.mockInput.pressEnter();
     await setup.renderOnce();
-    expect(setup.captureCharFrame()).toContain("▌ HELP");
+    expect(setup.captureCharFrame()).toContain("Help");
     setup.mockInput.pressEscape();
     await new Promise<void>(resolveWait => setTimeout(resolveWait, 25));
 
@@ -838,7 +871,7 @@ test("the command palette activates add, reconnect, help, and conversation entri
 });
 
 test("the command palette remains usable at 40x12", async () => {
-  const {setup, app} = await setupApp(electricQuietFixture(), undefined, {
+  const {setup, app} = await setupApp(minimalMessagingFixture(), undefined, {
     width: 40,
     height: 12
   });
@@ -847,9 +880,9 @@ test("the command palette remains usable at 40x12", async () => {
     await setup.renderOnce();
     const frame = setup.captureCharFrame();
     const lines = frame.split("\n").slice(0, 12);
-    expect(frame).toContain("COMMANDS");
+    expect(frame).toContain("Actions");
+    expect(frame).toContain("Search");
     expect(frame).toContain("Add contact");
-    expect(frame).toContain("COMMAND");
     expect(lines).toHaveLength(12);
     expect(lines.every(line => line.length <= 40)).toBe(true);
   } finally {
@@ -857,125 +890,109 @@ test("the command palette remains usable at 40x12", async () => {
   }
 });
 
-test("focus, selection, message direction, and composer surfaces remain distinct", async () => {
-  const {setup, app} = await setupApp(electricQuietFixture(), undefined, {
+test("approved layout preserves focus, subtle surfaces, and message direction", async () => {
+  const {setup, app} = await setupApp(minimalMessagingFixture(), undefined, {
     width: 120,
     height: 34
   });
   try {
-    const selectedUnfocused = setup.renderer.root.findDescendantById(
-      "thread-row-0"
-    ) as BoxRenderable;
-    const unselected = setup.renderer.root.findDescendantById(
-      "thread-row-1"
-    ) as BoxRenderable;
     const composer = setup.renderer.root.findDescendantById(
       "composer-region"
     ) as BoxRenderable;
-    const composerFocusedBorder = composer.borderColor.toInts();
+    expect(composer.borderStyle).toBe("single");
+    expect(
+      (setup.renderer.root.findDescendantById("composer-prompt") as TextRenderable)
+        .plainText
+    ).toBe("");
+    const initialFrame = setup.captureCharFrame();
+    expect(initialFrame).toContain("▌ alice");
+    expect(initialFrame).not.toContain("You");
+    expect(initialFrame).not.toContain("TO ");
+    expect(initialFrame).not.toContain("Message alice");
+    expect(initialFrame).not.toContain("SESSION");
 
-    expect(selectedUnfocused.backgroundColor.equals(unselected.backgroundColor)).toBe(
-      false
-    );
+    const incoming = setup.renderer.root.findDescendantById(
+      "message-body-1"
+    ) as TextRenderable;
+    const outgoing = setup.renderer.root.findDescendantById(
+      "message-body-3"
+    ) as TextRenderable;
+    expect(outgoing.screenX).toBeGreaterThan(incoming.screenX);
+    expect(setup.renderer.root.findDescendantById("message-surface-1")).toBeDefined();
+    expect(setup.renderer.root.findDescendantById("message-surface-3")).toBeDefined();
+
     setup.mockInput.pressTab();
     await setup.renderOnce();
-
-    const selectedFocused = setup.renderer.root.findDescendantById(
-      "thread-row-0"
-    ) as BoxRenderable;
     const composerUnfocused = setup.renderer.root.findDescendantById(
       "composer-region"
     ) as BoxRenderable;
-    expect(selectedFocused.backgroundColor.equals(unselected.backgroundColor)).toBe(
-      false
-    );
+    expect(composerUnfocused.borderStyle).toBe("single");
     expect(
-      selectedFocused.backgroundColor.equals(selectedUnfocused.backgroundColor)
-    ).toBe(false);
-    expect(composerUnfocused.borderColor.toInts()).not.toEqual(composerFocusedBorder);
-
-    const incoming = setup.renderer.root.findDescendantById(
-      "message-surface-1"
-    ) as BoxRenderable;
-    const outgoing = setup.renderer.root.findDescendantById(
-      "message-surface-3"
-    ) as BoxRenderable;
-    expect(incoming.backgroundColor.equals(outgoing.backgroundColor)).toBe(false);
-    expect(outgoing.screenX + outgoing.width).toBeLessThanOrEqual(118);
-
-    const frame = setup.captureCharFrame();
-    expect(frame).toContain("▌ alice");
-    expect(frame).toContain("You ▐");
-    expect(frame).toContain("✓ Sent");
-    expect(frame).toContain("? Check your phone");
-    const captured = setup.captureSpans();
-    expect(
-      captured.lines.some(line =>
-        line.spans.some(span => span.bg.equals(selectedFocused.backgroundColor))
-      )
-    ).toBe(true);
+      (setup.renderer.root.findDescendantById("composer-prompt") as TextRenderable)
+        .plainText
+    ).toBe("");
+    expect(setup.captureCharFrame()).toContain("› alice");
   } finally {
     await app.stop();
   }
 });
 
-test("brand, incoming, sending, and sent feedback all settle to an idle controller", async () => {
-  let now = 0;
-  const setup = await createTestRenderer({width: 80, height: 24});
-  const engine = new RecordingEngineClient(snapshot("+13125550123"));
-  const motion = new MotionController({
-    animated: true,
-    autoSchedule: false,
-    now: () => now,
-    requestFrame: () => setup.renderer.requestRender()
+test("uses the real mark with image-capable terminals and a clean text fallback", async () => {
+  const setup = await createTestRenderer({width: 120, height: 34});
+  setRendererCapabilities(setup.renderer, {
+    kitty_graphics: true,
+    image_protocol: "kitty",
+    terminal: {name: "kitty"}
   });
+  const engine = new RecordingEngineClient(snapshot("+13125550123"));
   const app = createBlupostTui({
     renderer: setup.renderer,
     engine,
-    interactive: true,
-    autoConnect: false,
-    motionController: motion
+    autoConnect: false
   });
   try {
     await app.start();
     await setup.renderOnce();
-    const brand = setup.renderer.root.findDescendantById(
-      "brand-mark"
-    ) as ImageRenderable;
-    expect(brand.opacity).toBeCloseTo(0.35);
-    expect(motion.idle).toBe(false);
-    now = 200;
-    motion.tick(now);
-    expect(brand.opacity).toBe(1);
-    expect(motion.idle).toBe(true);
-
-    const incoming = snapshot("+13125550123");
-    incoming.session.total_messages = 2;
-    incoming.session.threads[0]!.messages.push({
-      id: 2,
-      participant: "+13125550123",
-      body: "New fixture arrival",
-      direction: "incoming",
-      state: "received",
-      unread: true
-    });
-    engine.emitSnapshot(incoming);
-    const highlightedThread = setup.renderer.root.findDescendantById(
-      "thread-row-0"
+    const brand = setup.renderer.root.findDescendantById("brand-mark");
+    const brandRow = setup.renderer.root.findDescendantById(
+      "sidebar-brand-row"
     ) as BoxRenderable;
-    const highlightedThreadColor = highlightedThread.backgroundColor.toInts();
-    expect(motion.idle).toBe(false);
-    now = 440;
-    motion.tick(now);
-    expect(highlightedThread.backgroundColor.toInts()).not.toEqual(
-      highlightedThreadColor
+    const firstConversation = setup.renderer.root.findDescendantById("thread-row-0");
+    const connection = setup.renderer.root.findDescendantById("connection-status");
+    expect(brand?.visible).toBe(true);
+    expect(setup.renderer.root.findDescendantById("brand-mark-fallback")?.visible).toBe(
+      false
     );
-    expect(motion.idle).toBe(true);
+    expect(firstConversation!.screenY - brand!.screenY).toBeGreaterThanOrEqual(3);
+    expect(connection!.screenY).toBe(brandRow.screenY + brandRow.height - 2);
+    expect(connection!.screenX).toBeGreaterThan(brand!.screenX);
+    expect(
+      setup.captureCharFrame().split("\n")[brandRow.screenY + brandRow.height - 1]
+    ).toContain("─");
 
-    const sending = structuredClone(incoming);
-    sending.session.total_messages = 3;
+    setRendererCapabilities(setup.renderer, {image_protocol: "blocks"});
+    setup.renderer.emit(CliRenderEvents.CAPABILITIES, setup.renderer.capabilities);
+    await setup.renderOnce();
+    expect(setup.renderer.root.findDescendantById("brand-mark")?.visible).toBe(false);
+    expect(setup.renderer.root.findDescendantById("brand-mark-fallback")?.visible).toBe(
+      true
+    );
+    expect(setup.captureCharFrame()).toContain("b");
+  } finally {
+    await app.stop();
+  }
+});
+
+test("send state replaces in place without animation or duplicate status copy", async () => {
+  const {setup, engine, app} = await setupApp(snapshot("+13125550123"), undefined, {
+    width: 80,
+    height: 24
+  });
+  try {
+    const sending = snapshot("+13125550123");
+    sending.session.total_messages = 2;
     sending.session.threads[0]!.messages.push({
-      id: 3,
+      id: 2,
       participant: "+13125550123",
       body: "Fixture outgoing",
       direction: "outgoing",
@@ -983,25 +1000,18 @@ test("brand, incoming, sending, and sent feedback all settle to an idle controll
       unread: false
     });
     engine.emitSnapshot(sending);
-    expect(motion.idle).toBe(false);
-    now = 1_000;
-    motion.tick(now);
-    expect(motion.idle).toBe(false);
+    await setup.renderOnce();
+    expect(setup.captureCharFrame().match(/sending…/gu)).toHaveLength(1);
 
     const sent = structuredClone(sending);
     sent.session.threads[0]!.messages.at(-1)!.state = "sent";
     engine.emitSnapshot(sent);
+    await setup.renderOnce();
     const outcome = setup.renderer.root.findDescendantById(
-      "message-outcome-3"
+      "message-outcome-2"
     ) as TextRenderable;
-    const successColor = outcome.fg.toInts();
-    expect(outcome.plainText).toBe("✓ Sent");
-    expect(motion.idle).toBe(false);
-    now = 1_800;
-    motion.tick(now);
-    expect(outcome.fg.toInts()).not.toEqual(successColor);
-    expect(outcome.plainText).toBe("✓ Sent");
-    expect(motion.idle).toBe(true);
+    expect(outcome.plainText).toBe("✓");
+    expect(setup.captureCharFrame()).not.toContain("sending…");
   } finally {
     await app.stop();
   }
@@ -1013,7 +1023,6 @@ test("renderer destruction closes the engine and resolves the app once", async (
   const app = createBlupostTui({
     renderer: setup.renderer,
     engine,
-    interactive: false,
     autoConnect: false
   });
   await app.start();
