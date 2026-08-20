@@ -4,9 +4,8 @@ Blupost is a terminal-native Linux client for session-based one-to-one texting t
 
 ![Blupost Electric Quiet terminal interface](docs/ui-preview.svg)
 
-_An actual deterministic frame captured from the implemented TUI._
 
-The live feasibility probe passed on BlueZ 5.87: Linux sent a text through the iPhone and retrieved a reply through MAP notifications. Blupost deliberately does not synchronize old conversations—each process starts with an empty, in-memory session and retains at most 500 messages across all live threads.
+Blupost deliberately does not synchronize old conversations—each process starts with an empty, in-memory session and retains at most 500 messages across all live threads.
 
 ## Requirements
 
